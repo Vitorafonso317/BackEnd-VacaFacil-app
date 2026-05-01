@@ -123,6 +123,10 @@ class Database {
       (2, 'Pro', 29.90, 'Plano profissional'),
       (3, 'Premium', 59.90, 'Plano premium')`);
 
+    // Migrations: adiciona colunas novas sem quebrar banco existente
+    await this.run(`ALTER TABLE vacas ADD COLUMN foto_url TEXT`).catch(() => {});
+    await this.run(`ALTER TABLE users ADD COLUMN foto_url TEXT`).catch(() => {});
+
     console.log("✅ Tables created/verified");
   }
 

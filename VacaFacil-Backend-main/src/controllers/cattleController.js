@@ -1,5 +1,7 @@
 const cattleService = require("../services/cattleService");
 const { ok, created, noData, paginated } = require("../middleware/response");
+const path = require("path");
+const fs = require("fs");
 
 async function getAll(req, res, next) {
   try {
@@ -38,4 +40,27 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getOne, create, update, remove };
+async function uploadFoto(req, res, next) {
+  try {
+    if (!req.file) {
+      const err = new Error("Nenhuma imagem enviada");
+      err.status = 400;
+      throw err;
+    }
+
+    const baseUrl = `${req.protocol}://${req.get("host")}`;
+    const fotoUrl = `${baseUrl}/uploads/vacas/${req.file.filename}`;
+
+    // Remove foto antiga se existir
+    const vaca = await cattleService.getOne(req.params.id, req.user.id);
+    if (vaca.foto_url) {
+      const oldFile = path.resolve(__dirname, "../uploads/vacas", path.basename(vaca.foto_url));
+      fs.unlink(oldFile, () => {}); // ignora erro se arquivo não existir
+    }
+
+    await cattleService.updateFoto(req.params.id, fotoUrl, req.user.id);
+    return ok(res, { foto_url: fotoUrl }, "Foto atualizada com sucesso");
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getOne, create, update, remove, uploadFoto };

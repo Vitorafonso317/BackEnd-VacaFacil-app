@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 const errorMiddleware = require("./middleware/errorMiddleware");
@@ -8,6 +9,9 @@ const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve as fotos das vacas como arquivos estáticos
+app.use("/uploads", express.static(path.resolve(__dirname, "uploads")));
 
 app.use((req, res, next) => {
   const start = Date.now();

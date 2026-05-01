@@ -66,4 +66,16 @@ async function remove(id, userId) {
   }
 }
 
-module.exports = { getAll, getOne, create, update, remove };
+async function updateFoto(id, fotoUrl, userId) {
+  const result = await db.run(
+    "UPDATE vacas SET foto_url = ? WHERE id = ? AND user_id = ?",
+    [fotoUrl, id, userId]
+  );
+  if (!result.changes) {
+    const err = new Error("Vaca não encontrada");
+    err.status = 404;
+    throw err;
+  }
+}
+
+module.exports = { getAll, getOne, create, update, remove, updateFoto };
