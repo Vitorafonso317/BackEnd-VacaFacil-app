@@ -58,6 +58,16 @@ async function update(id, data, userId) {
 }
 
 async function remove(id, userId) {
+  const vaca = await db.get("SELECT id FROM vacas WHERE id = ? AND user_id = ?", [id, userId]);
+  if (!vaca) {
+    const err = new Error("Vaca não encontrada");
+    err.status = 404;
+    throw err;
+  }
+
+  await db.run("DELETE FROM producao WHERE vaca_id = ?", [id]);
+  await db.run("DELETE FROM reproducao WHERE vaca_id = ?", [id]);
+
   const result = await db.run("DELETE FROM vacas WHERE id = ? AND user_id = ?", [id, userId]);
   if (!result.changes) {
     const err = new Error("Vaca não encontrada");
