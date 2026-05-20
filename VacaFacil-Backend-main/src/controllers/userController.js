@@ -27,7 +27,11 @@ async function updateMe(req, res, next) {
     const values = [];
 
     if (nome) { fields.push("nome = ?"); values.push(nome); }
-    if (email) { fields.push("email = ?"); values.push(email); }
+    if (email) {
+      const conflict = await db.get("SELECT id FROM users WHERE email = ? AND id != ?", [email, req.user.id]);
+      if (conflict) return res.status(409).json({ success: false, message: "Email já está em uso" });
+      fields.push("email = ?"); values.push(email);
+    }
     if (password) { fields.push("password = ?"); values.push(await bcrypt.hash(password, 10)); }
 
     if (!fields.length) return res.status(400).json({ success: false, message: "Nenhum campo para atualizar" });
