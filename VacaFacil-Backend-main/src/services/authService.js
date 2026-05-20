@@ -37,10 +37,15 @@ async function login(email, password) {
   await db.run("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", [user.id]);
 
   const token = jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: "7d",
+    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 
-  return { token, user: { id: user.id, nome: user.nome, email: user.email } };
+  const planoRow = await db.get(
+    `SELECT p.nome FROM assinaturas a JOIN planos p ON p.id = a.plano_id WHERE a.user_id = ? AND a.status = 'ativo'`,
+    [user.id]
+  );
+
+  return { token, user: { id: user.id, nome: user.nome, email: user.email, foto_url: user.foto_url || null, plano: planoRow?.nome || "Gratuito" } };
 }
 
 module.exports = { register, login };

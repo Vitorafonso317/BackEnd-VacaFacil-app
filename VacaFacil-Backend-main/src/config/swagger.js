@@ -8,7 +8,7 @@ const options = {
       version: "1.0.0",
       description: "API de gestão de fazendas leiteiras",
     },
-    servers: [{ url: "http://localhost:5000", description: "Desenvolvimento" }],
+    servers: [{ url: process.env.API_URL || "http://localhost:5000", description: "Servidor" }],
     components: {
       securitySchemes: {
         bearerAuth: {
@@ -671,7 +671,7 @@ const options = {
         },
       },
       "/ml/predict-production": {
-        post: {
+        get: {
           tags: ["ML / IA"],
           summary: "Previsão de produção",
           security: [{ bearerAuth: [] }],

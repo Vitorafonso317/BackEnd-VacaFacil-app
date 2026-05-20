@@ -25,18 +25,18 @@ async function getOne(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { titulo, descricao, preco, categoria } = req.body;
+    const { titulo, descricao, preco, categoria, contato } = req.body;
     const result = await db.run(
-      "INSERT INTO marketplace (titulo, descricao, preco, categoria, user_id) VALUES (?, ?, ?, ?, ?)",
-      [titulo, descricao || null, preco, categoria || null, req.user.id]
+      "INSERT INTO marketplace (titulo, descricao, preco, categoria, contato, user_id) VALUES (?, ?, ?, ?, ?, ?)",
+      [titulo, descricao || null, preco, categoria || null, contato || null, req.user.id]
     );
-    return created(res, { id: result.id, titulo, descricao, preco, categoria }, "Anúncio criado com sucesso");
+    return created(res, { id: result.id, titulo, descricao, preco, categoria, contato }, "Anúncio criado com sucesso");
   } catch (err) { next(err); }
 }
 
 async function update(req, res, next) {
   try {
-    const { titulo, descricao, preco, categoria } = req.body;
+    const { titulo, descricao, preco, categoria, contato } = req.body;
     const fields = [];
     const values = [];
 
@@ -44,6 +44,7 @@ async function update(req, res, next) {
     if (descricao !== undefined) { fields.push("descricao = ?"); values.push(descricao); }
     if (preco !== undefined) { fields.push("preco = ?"); values.push(preco); }
     if (categoria !== undefined) { fields.push("categoria = ?"); values.push(categoria); }
+    if (contato !== undefined) { fields.push("contato = ?"); values.push(contato); }
 
     if (!fields.length) return res.status(400).json({ success: false, message: "Nenhum campo para atualizar" });
 
@@ -68,4 +69,21 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getOne, create, update, remove };
+async function getMine(req, res, next) {
+  try {
+    const page = Math.max(1, parseInt(req.query.page) || 1);
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
+    const offset = (page - 1) * limit;
+
+    const [rows, countRow] = await Promise.all([
+      db.query(
+        "SELECT * FROM marketplace WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        [req.user.id, limit, offset]
+      ),
+      db.get("SELECT COUNT(*) as total FROM marketplace WHERE user_id = ?", [req.user.id]),
+    ]);
+    return paginated(res, rows, countRow.total, page, limit, "Meus anúncios");
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getOne, getMine, create, update, remove };

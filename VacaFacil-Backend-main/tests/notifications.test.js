@@ -1,11 +1,6 @@
 const request = require("supertest");
 const app = require("../src/app");
-
-async function registerAndLogin(email = "notif@email.com") {
-  await request(app).post("/auth/register").send({ nome: "User", email, password: "senha123" });
-  const res = await request(app).post("/auth/login").send({ email, password: "senha123" });
-  return res.body.data.token;
-}
+const { registerAndLogin } = require("./helpers");
 
 async function criarNotificacao(token) {
   const res = await request(app)

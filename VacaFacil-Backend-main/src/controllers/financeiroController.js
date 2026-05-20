@@ -61,4 +61,11 @@ async function deleteDespesa(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getReceitas, createReceita, updateReceita, deleteReceita, getDespesas, createDespesa, updateDespesa, deleteDespesa };
+async function getResumo(req, res, next) {
+  try {
+    const data = await financialService.resumo(req.user.id);
+    return ok(res, data, "Resumo financeiro");
+  } catch (err) { next(err); }
+}
+
+module.exports = { getReceitas, createReceita, updateReceita, deleteReceita, getDespesas, createDespesa, updateDespesa, deleteDespesa, getResumo };

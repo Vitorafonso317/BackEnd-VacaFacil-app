@@ -4,12 +4,17 @@ const fs = require("fs");
 const db = require("../database/database");
 const { ok, noData } = require("../middleware/response");
 
+const USER_SELECT = `
+  SELECT u.id, u.nome, u.email, u.foto_url, u.created_at, u.last_login,
+         COALESCE(p.nome, 'Gratuito') as plano
+  FROM users u
+  LEFT JOIN assinaturas a ON a.user_id = u.id AND a.status = 'ativo'
+  LEFT JOIN planos p ON p.id = a.plano_id
+  WHERE u.id = ?`;
+
 async function getMe(req, res, next) {
   try {
-    const user = await db.get(
-      "SELECT id, nome, email, foto_url, created_at, last_login FROM users WHERE id = ?",
-      [req.user.id]
-    );
+    const user = await db.get(USER_SELECT, [req.user.id]);
     if (!user) return res.status(404).json({ success: false, message: "Usuário não encontrado" });
     return ok(res, user, "Dados do usuário");
   } catch (err) { next(err); }
@@ -29,7 +34,8 @@ async function updateMe(req, res, next) {
 
     values.push(req.user.id);
     await db.run(`UPDATE users SET ${fields.join(", ")} WHERE id = ?`, values);
-    return noData(res, "Usuário atualizado com sucesso");
+    const updated = await db.get(USER_SELECT, [req.user.id]);
+    return ok(res, updated, "Usuário atualizado com sucesso");
   } catch (err) { next(err); }
 }
 

@@ -1,11 +1,6 @@
 const request = require("supertest");
 const app = require("../src/app");
-
-async function registerAndLogin(email = "fin@email.com") {
-  await request(app).post("/auth/register").send({ nome: "User", email, password: "senha123" });
-  const res = await request(app).post("/auth/login").send({ email, password: "senha123" });
-  return res.body.data.token;
-}
+const { registerAndLogin } = require("./helpers");
 
 const RECEITA = { descricao: "Venda de leite", valor: 500.0, data: "2025-01-15" };
 const DESPESA = { descricao: "Ração", valor: 200.0, data: "2025-01-15" };
@@ -69,7 +64,7 @@ describe("PUT /financeiro/receitas/:id", () => {
     const criada = await request(app).post("/financeiro/receitas").set("Authorization", `Bearer ${token}`).send(RECEITA);
     const id = criada.body.data.id;
 
-    const res = await request(app).put(`/financeiro/receitas/${id}`).set("Authorization", `Bearer ${token}`).send({ valor: 750 });
+    const res = await request(app).put(`/financeiro/receitas/${id}`).set("Authorization", `Bearer ${token}`).send({ ...RECEITA, valor: 750 });
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
   });
@@ -80,7 +75,7 @@ describe("PUT /financeiro/receitas/:id", () => {
     const criada = await request(app).post("/financeiro/receitas").set("Authorization", `Bearer ${token1}`).send(RECEITA);
     const id = criada.body.data.id;
 
-    const res = await request(app).put(`/financeiro/receitas/${id}`).set("Authorization", `Bearer ${token2}`).send({ valor: 999 });
+    const res = await request(app).put(`/financeiro/receitas/${id}`).set("Authorization", `Bearer ${token2}`).send({ ...RECEITA, valor: 999 });
     expect(res.status).toBe(404);
   });
 });

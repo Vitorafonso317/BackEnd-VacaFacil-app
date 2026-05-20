@@ -28,6 +28,11 @@ afterEach(async () => {
   await db.run("DELETE FROM assinaturas");
   await db.run("DELETE FROM vacas");
   await db.run("DELETE FROM users");
+  await db.run("DELETE FROM planos");
+  await db.run(`INSERT OR IGNORE INTO planos (id, nome, preco, descricao) VALUES
+    (1, 'Gratuito', 0, 'Plano basico'),
+    (2, 'Pro', 29.90, 'Plano profissional'),
+    (3, 'Premium', 59.90, 'Plano premium')`);
 });
 
 afterAll(async () => {

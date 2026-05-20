@@ -3,6 +3,7 @@ const auth = require("../middleware/authMiddleware");
 const { validate, rules } = require("../middleware/validateMiddleware");
 const c = require("../controllers/marketplaceController");
 
+router.get("/meus", auth, c.getMine);
 router.get("/", c.getAll);
 router.get("/:id", c.getOne);
 router.post("/", auth, rules.marketplace, validate, c.create);

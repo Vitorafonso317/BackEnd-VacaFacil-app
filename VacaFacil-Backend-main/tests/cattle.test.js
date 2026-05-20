@@ -1,19 +1,6 @@
 const request = require("supertest");
 const app = require("../src/app");
-
-async function registerAndLogin(email = "user@email.com") {
-  await request(app).post("/auth/register").send({ nome: "User", email, password: "senha123" });
-  const res = await request(app).post("/auth/login").send({ email, password: "senha123" });
-  return res.body.data.token;
-}
-
-async function criarVaca(token, dados = {}) {
-  const res = await request(app)
-    .post("/vacas")
-    .set("Authorization", `Bearer ${token}`)
-    .send({ nome: "Mimosa", raca: "Holandesa", idade: 4, peso: 550, ...dados });
-  return res.body.data;
-}
+const { registerAndLogin, criarVaca } = require("./helpers");
 
 describe("POST /vacas", () => {
   it("cria vaca com sucesso", async () => {

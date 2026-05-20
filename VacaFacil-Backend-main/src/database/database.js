@@ -126,6 +126,7 @@ class Database {
     // Migrations: adiciona colunas novas sem quebrar banco existente
     await this.run(`ALTER TABLE vacas ADD COLUMN foto_url TEXT`).catch(() => {});
     await this.run(`ALTER TABLE users ADD COLUMN foto_url TEXT`).catch(() => {});
+    await this.run(`ALTER TABLE marketplace ADD COLUMN contato TEXT`).catch(() => {});
 
     console.log("✅ Tables created/verified");
   }

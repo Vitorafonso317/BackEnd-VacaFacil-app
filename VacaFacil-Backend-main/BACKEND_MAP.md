@@ -1,256 +1,195 @@
-# 🗺️ MeetStranger Backend - Mapa Completo
+# VacaFácil Backend - Mapa do Projeto
 
-## 📁 Estrutura do Projeto
+## Estrutura de Arquivos
 
 ```
-backend/
-├── src/                          # Código fonte principal
-│   ├── controllers/              # Controladores das rotas
-│   │   ├── auth.controller.js    # Autenticação (register, login, logout)
-│   │   ├── chat.controller.js    # Chat (rooms, messages)
-│   │   └── matching.controller.js # Matching (join, leave, stats)
-│   ├── middleware/               # Middlewares
-│   │   ├── auth.middleware.js    # Verificação JWT
-│   │   ├── rateLimit.middleware.js # Rate limiting
-│   │   └── validation.middleware.js # Validação Joi
-│   ├── routes/                   # Definição das rotas
-│   │   ├── auth.routes.js        # /api/auth/*
-│   │   ├── chat.routes.js        # /api/chat/*
-│   │   └── matching.routes.js    # /api/matching/*
-│   ├── services/                 # Lógica de negócio
-│   │   ├── auth.service.js       # Gerenciamento de usuários
-│   │   ├── matching.service.js   # Sistema de filas e matching
-│   │   └── websocket.service.js  # WebSocket em tempo real
-│   └── app.js                    # Aplicação principal
-├── docs/                         # Documentação
-│   ├── index.html               # Interface FastAPI-style
-│   ├── swagger.yaml             # Especificação OpenAPI
-│   └── websocket-events.md      # Documentação WebSocket
-├── tests/                        # Testes
-│   └── api-test.js              # Script de teste completo
-├── package.json                  # Dependências e scripts
-├── .env                         # Configurações de ambiente
-└── README.md                    # Documentação principal
+VacaFacil-Backend-main/
+├── src/
+│   ├── controllers/              # Lógica de cada domínio
+│   │   ├── authController.js     # register, login
+│   │   ├── userController.js     # perfil, atualização, exclusão de conta
+│   │   ├── cattleController.js   # CRUD de vacas
+│   │   ├── productionController.js # CRUD de registros de produção de leite
+│   │   ├── financeiroController.js # CRUD financeiro (receitas/despesas)
+│   │   ├── reproducaoController.js # CRUD de eventos reprodutivos
+│   │   ├── marketplaceController.js # CRUD de anúncios
+│   │   ├── notificacoesController.js # CRUD de notificações
+│   │   ├── assinaturasController.js  # Planos e assinaturas
+│   │   ├── relatoriosController.js   # Relatórios agregados
+│   │   └── mlController.js       # IA/ML: previsões e insights
+│   ├── services/                 # Camada de serviço (domínios com mais lógica)
+│   │   ├── authService.js        # Hashing de senha, geração de JWT
+│   │   ├── cattleService.js      # Regras de negócio de rebanho
+│   │   ├── productionService.js  # Regras de produção de leite
+│   │   └── financialService.js   # Regras financeiras
+│   ├── routes/                   # Definição das rotas e middlewares por módulo
+│   │   ├── authRoutes.js         # /auth
+│   │   ├── userRoutes.js         # /users
+│   │   ├── cattleRoutes.js       # /vacas
+│   │   ├── productionRoutes.js   # /producao
+│   │   ├── financeiroRoutes.js   # /financeiro
+│   │   ├── reproducaoRoutes.js   # /reproducao
+│   │   ├── marketplaceRoutes.js  # /marketplace
+│   │   ├── notificacoesRoutes.js # /notifications
+│   │   ├── assinaturasRoutes.js  # /subscriptions
+│   │   ├── relatoriosRoutes.js   # /relatorios
+│   │   └── mlRoutes.js           # /ml
+│   ├── middleware/
+│   │   ├── authMiddleware.js     # Validação do JWT Bearer
+│   │   ├── validateMiddleware.js # Regras de validação por rota (express-validator)
+│   │   ├── uploadMiddleware.js   # Upload de imagens com multer
+│   │   ├── response.js           # Helpers: ok, created, noData, paginated
+│   │   └── errorHandler.js       # Handler global de erros
+│   ├── database/
+│   │   └── database.js           # Conexão SQLite + helpers (get, query, run)
+│   ├── models/
+│   │   └── User.js               # (reservado para constantes/validações do usuário)
+│   ├── docs/
+│   │   └── swagger.js            # Configuração Swagger/OpenAPI
+│   ├── app.js                    # Express app, middlewares globais, rotas
+│   └── server.js                 # Ponto de entrada, inicia o servidor
+├── tests/                        # Suites Jest + Supertest
+│   ├── auth.test.js
+│   ├── users.test.js
+│   ├── cattle.test.js
+│   ├── production.test.js
+│   ├── financial.test.js
+│   ├── notifications.test.js
+│   ├── reproducao.test.js
+│   ├── marketplace.test.js
+│   ├── assinaturas.test.js
+│   ├── relatorios.test.js
+│   └── ml.test.js
+├── .env                          # Variáveis de ambiente (não versionar)
+├── .env.example                  # Modelo de variáveis de ambiente
+├── jest.config.json
+├── package.json
+└── README.md
 ```
 
-## 🔗 Endpoints Mapeados
+## Endpoints
 
-### 🔐 Autenticação (`/api/auth`)
-- `POST /register` - Registrar usuário
-- `POST /login` - Login e obter JWT
-- `POST /logout` - Logout (invalidar token)
-- `GET /profile` - Obter perfil do usuário
+### Autenticação (`/auth`)
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/auth/register` | Cadastro de novo usuário |
+| POST | `/auth/login` | Login, retorna JWT |
 
-### 🎯 Matching (`/api/matching`)
-- `POST /join` - Entrar na fila por categoria
-- `DELETE /leave` - Sair da fila
-- `GET /stats` - Estatísticas das filas
+### Usuários (`/users`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/users/me` | ✅ | Perfil do usuário autenticado |
+| PUT | `/users/me` | ✅ | Atualizar nome/email/senha |
+| DELETE | `/users/me` | ✅ | Excluir conta |
+| POST | `/users/me/photo` | ✅ | Upload de foto de perfil |
 
-### 💬 Chat (`/api/chat`)
-- `GET /rooms` - Listar salas do usuário
-- `GET /rooms/:id/messages` - Mensagens da sala
-- `POST /rooms/:id/messages` - Enviar mensagem
-- `POST /rooms/:id/leave` - Sair da sala
+### Rebanho (`/vacas`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/vacas` | ✅ | Listar vacas (paginado) |
+| POST | `/vacas` | ✅ | Cadastrar vaca |
+| GET | `/vacas/:id` | ✅ | Buscar vaca por ID |
+| PUT | `/vacas/:id` | ✅ | Atualizar vaca |
+| DELETE | `/vacas/:id` | ✅ | Remover vaca |
+| POST | `/vacas/:id/photo` | ✅ | Upload de foto da vaca |
 
-### 📊 Monitoramento
-- `GET /api/health` - Status do servidor
-- `GET /docs` - Documentação interativa
+### Produção de Leite (`/producao`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/producao` | ✅ | Listar registros (paginado) |
+| POST | `/producao` | ✅ | Registrar produção |
+| GET | `/producao/:id` | ✅ | Buscar registro |
+| PUT | `/producao/:id` | ✅ | Atualizar registro |
+| DELETE | `/producao/:id` | ✅ | Remover registro |
 
-## 🔌 Eventos WebSocket
+### Financeiro (`/financeiro`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/financeiro` | ✅ | Listar lançamentos (paginado) |
+| POST | `/financeiro` | ✅ | Criar lançamento |
+| GET | `/financeiro/:id` | ✅ | Buscar lançamento |
+| PUT | `/financeiro/:id` | ✅ | Atualizar lançamento |
+| DELETE | `/financeiro/:id` | ✅ | Remover lançamento |
 
-### Cliente → Servidor
-- `authenticate` - Autenticar com JWT
-- `join_queue` - Entrar na fila
-- `leave_queue` - Sair da fila
-- `join_room` - Entrar na sala
-- `send_message` - Enviar mensagem
-- `typing_start/stop` - Indicadores de digitação
-- `leave_room` - Sair da sala
+### Reprodução (`/reproducao`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/reproducao` | ✅ | Listar eventos (paginado) |
+| POST | `/reproducao` | ✅ | Registrar evento |
+| PUT | `/reproducao/:id` | ✅ | Atualizar evento |
+| DELETE | `/reproducao/:id` | ✅ | Remover evento |
 
-### Servidor → Cliente
-- `authenticated` - Confirmação de auth
-- `queue_status` - Status da fila
-- `match_found` - Match encontrado
-- `new_message` - Nova mensagem
-- `partner_typing` - Parceiro digitando
-- `partner_left` - Parceiro saiu
+### Marketplace (`/marketplace`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/marketplace` | ❌ | Listar anúncios (público, paginado) |
+| GET | `/marketplace/:id` | ❌ | Ver anúncio (público) |
+| POST | `/marketplace` | ✅ | Criar anúncio |
+| PUT | `/marketplace/:id` | ✅ | Atualizar anúncio (somente dono) |
+| DELETE | `/marketplace/:id` | ✅ | Remover anúncio (somente dono) |
 
-## 🛡️ Middlewares Implementados
+### Notificações (`/notifications`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/notifications` | ✅ | Listar notificações |
+| PUT | `/notifications/:id/read` | ✅ | Marcar como lida |
+| DELETE | `/notifications/:id` | ✅ | Remover notificação |
 
-### Autenticação
-- **JWT Verification** - Valida tokens Bearer
-- **Rate Limiting** - Proteção contra spam
-- **Input Validation** - Joi schemas
+### Assinaturas (`/subscriptions`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/subscriptions/plans` | ❌ | Listar planos disponíveis |
+| POST | `/subscriptions/subscribe` | ✅ | Assinar um plano |
+| GET | `/subscriptions/status` | ✅ | Status da assinatura atual |
+| PUT | `/subscriptions/upgrade` | ✅ | Trocar de plano |
+| DELETE | `/subscriptions/cancel` | ✅ | Cancelar assinatura |
 
-### Segurança
-- **CORS** - Configurado para mobile
-- **Helmet** - Headers de segurança
-- **Rate Limits**:
-  - Auth: 5 req/min
-  - Chat: 100 req/min
-  - Messages: 10 msg/min
+### Relatórios (`/relatorios`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| GET | `/relatorios/producao/json` | ✅ | Relatório de produção de leite |
+| GET | `/relatorios/financeiro/json` | ✅ | Relatório financeiro |
+| GET | `/relatorios/completo/json` | ✅ | Relatório completo da fazenda |
 
-## 💾 Armazenamento (Mock)
+### ML / IA (`/ml`)
+| Método | Rota | Auth | Descrição |
+|--------|------|------|-----------|
+| POST | `/ml/predict-production` | ✅ | Previsão de produção (média dos últimos 30 dias) |
+| GET | `/ml/analyze-performance` | ✅ | Análise de desempenho do rebanho |
+| GET | `/ml/detect-anomalies` | ✅ | Detecção de anomalias |
+| GET | `/ml/recommendations` | ✅ | Recomendações geradas |
+| GET | `/ml/financial-forecast` | ✅ | Previsão financeira |
+| GET | `/ml/insights` | ✅ | Insights gerais |
 
-### Em Memória (Desenvolvimento)
-- **Users Map** - Usuários registrados
-- **Queues Object** - Filas por categoria
-- **Active Rooms Map** - Salas ativas
-- **Messages Map** - Mensagens por sala
+## Banco de Dados (SQLite)
 
-### Produção (Recomendado)
-- **PostgreSQL** - Usuários, salas, mensagens
-- **Redis** - Filas, cache, sessões
+### Tabelas principais
+| Tabela | Descrição |
+|--------|-----------|
+| `users` | Usuários do sistema |
+| `vacas` | Rebanho por usuário |
+| `producao` | Registros de produção de leite |
+| `financeiro` | Lançamentos financeiros |
+| `reproducao` | Eventos reprodutivos |
+| `marketplace` | Anúncios públicos |
+| `notificacoes` | Notificações por usuário |
+| `planos` | Planos de assinatura |
+| `assinaturas` | Assinaturas ativas (1 por usuário) |
 
-## 🧪 Testes Implementados
+## Variáveis de Ambiente
 
-### Funcionalidades Testadas
-1. **Health Check** - Status do servidor
-2. **User Registration** - Criar conta
-3. **User Login** - Autenticação
-4. **Get Profile** - Dados do usuário
-5. **Invalid Token** - Segurança
-6. **Queue Stats** - Estatísticas
-7. **Join/Leave Queue** - Sistema de filas
-8. **Chat Rooms** - Listar salas
-9. **WebSocket Connection** - Conexão WS
-10. **WebSocket Auth** - Autenticação WS
-11. **WebSocket Queue** - Fila via WS
-12. **Rate Limiting** - Proteção
-13. **Input Validation** - Validação
-14. **User Logout** - Encerrar sessão
-
-### Como Executar Testes
 ```bash
-# Instalar dependências
-npm install
-
-# Executar servidor
-npm run dev
-
-# Em outro terminal, executar testes
-npm run test:api
+PORT=5000                        # Porta do servidor
+JWT_SECRET=sua_chave_secreta     # Chave de assinatura JWT
+JWT_EXPIRES_IN=7d                # Validade do token
+NODE_ENV=development             # Ambiente (development | production)
+ALLOWED_ORIGINS=http://localhost:8081  # Origens permitidas no CORS
 ```
 
-## 🚀 Fluxo de Uso Completo
+## Scripts
 
-### 1. Autenticação
-```javascript
-// Registrar
-POST /api/auth/register
-{
-  "username": "user123",
-  "email": "user@test.com", 
-  "password": "pass123"
-}
-
-// Login
-POST /api/auth/login
-{
-  "email": "user@test.com",
-  "password": "pass123"
-}
-// Retorna: { token: "jwt-token" }
-```
-
-### 2. WebSocket Connection
-```javascript
-const socket = io('ws://localhost:3000');
-socket.emit('authenticate', { token: 'jwt-token' });
-```
-
-### 3. Matching
-```javascript
-// Entrar na fila
-socket.emit('join_queue', { category: 'movies' });
-
-// Aguardar match
-socket.on('match_found', (data) => {
-  console.log('Room ID:', data.roomId);
-});
-```
-
-### 4. Chat
-```javascript
-// Entrar na sala
-socket.emit('join_room', { roomId: 'room-id' });
-
-// Enviar mensagem
-socket.emit('send_message', {
-  roomId: 'room-id',
-  content: 'Olá!'
-});
-
-// Receber mensagens
-socket.on('new_message', (message) => {
-  console.log(message.content);
-});
-```
-
-## 📈 Métricas e Monitoramento
-
-### Health Check Response
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T10:00:00Z",
-  "services": {
-    "database": "connected",
-    "redis": "connected", 
-    "websocket": "active"
-  }
-}
-```
-
-### Queue Stats
-```json
-{
-  "success": true,
-  "data": {
-    "queueSize": {
-      "movies": 5,
-      "games": 3,
-      "series": 2
-    }
-  }
-}
-```
-
-## 🔧 Configuração
-
-### Variáveis de Ambiente
 ```bash
-DATABASE_URL=postgresql://user:pass@localhost:5432/meetstranger
-REDIS_URL=redis://localhost:6379
-JWT_SECRET=your-secret-key
-JWT_EXPIRES_IN=24h
-PORT=3000
-NODE_ENV=development
-ALLOWED_ORIGINS=http://localhost:8081
+npm run dev    # Desenvolvimento com nodemon
+npm start      # Produção com node
+npm test       # Testes com Jest
 ```
-
-### Scripts Disponíveis
-```bash
-npm run dev        # Desenvolvimento com nodemon
-npm run start      # Produção
-npm run setup      # Configuração inicial
-npm run test:api   # Testes da API
-npm run test       # Testes unitários (Jest)
-```
-
-## 🎯 Status do Backend
-
-✅ **Implementado e Testado:**
-- Autenticação JWT completa
-- Sistema de matching por filas
-- WebSocket em tempo real
-- Rate limiting e segurança
-- Documentação interativa
-- Testes automatizados
-
-🔄 **Para Produção:**
-- Configurar PostgreSQL
-- Configurar Redis
-- Deploy com Docker
-- CI/CD pipeline
-- Monitoramento avançado

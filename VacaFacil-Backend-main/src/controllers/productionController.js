@@ -5,8 +5,16 @@ async function getAll(req, res, next) {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-    const { rows, total } = await productionService.getAll(req.user.id, page, limit);
+    const vacaId = req.query.vaca_id ? parseInt(req.query.vaca_id) : null;
+    const { rows, total } = await productionService.getAll(req.user.id, page, limit, vacaId);
     return paginated(res, rows, total, page, limit, "Lista de produções");
+  } catch (err) { next(err); }
+}
+
+async function getDailyVariation(req, res, next) {
+  try {
+    const data = await productionService.getDailyVariation(req.user.id);
+    return ok(res, data, "Variação diária de produção");
   } catch (err) { next(err); }
 }
 
@@ -31,4 +39,4 @@ async function remove(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, create, update, remove };
+module.exports = { getAll, getDailyVariation, create, update, remove };

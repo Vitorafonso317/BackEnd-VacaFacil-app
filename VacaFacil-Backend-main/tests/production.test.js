@@ -1,16 +1,6 @@
 const request = require("supertest");
 const app = require("../src/app");
-
-async function registerAndLogin(email = "prod@email.com") {
-  await request(app).post("/auth/register").send({ nome: "User", email, password: "senha123" });
-  const res = await request(app).post("/auth/login").send({ email, password: "senha123" });
-  return res.body.data.token;
-}
-
-async function criarVaca(token) {
-  const res = await request(app).post("/vacas").set("Authorization", `Bearer ${token}`).send({ nome: "Mimosa" });
-  return res.body.data;
-}
+const { registerAndLogin, criarVaca } = require("./helpers");
 
 async function criarProducao(token, vaca_id, dados = {}) {
   const res = await request(app)

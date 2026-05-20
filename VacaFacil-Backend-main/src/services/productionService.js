@@ -1,22 +1,49 @@
 const db = require("../database/database");
 
-async function getAll(userId, page, limit) {
+async function getAll(userId, page, limit, vacaId = null) {
   const offset = (page - 1) * limit;
+  const where = vacaId
+    ? "WHERE v.user_id = ? AND p.vaca_id = ?"
+    : "WHERE v.user_id = ?";
+  const params = vacaId ? [userId, vacaId] : [userId];
+
   const [rows, countRow] = await Promise.all([
     db.query(
       `SELECT p.* FROM producao p
        JOIN vacas v ON p.vaca_id = v.id
-       WHERE v.user_id = ?
+       ${where}
        ORDER BY p.data DESC LIMIT ? OFFSET ?`,
-      [userId, limit, offset]
+      [...params, limit, offset]
     ),
     db.get(
       `SELECT COUNT(*) as total FROM producao p
-       JOIN vacas v ON p.vaca_id = v.id WHERE v.user_id = ?`,
-      [userId]
+       JOIN vacas v ON p.vaca_id = v.id ${where}`,
+      params
     ),
   ]);
   return { rows, total: countRow.total };
+}
+
+async function getDailyVariation(userId) {
+  const rows = await db.query(
+    `SELECT date(p.data) as dia, ROUND(SUM(p.litros), 2) as total
+     FROM producao p
+     JOIN vacas v ON p.vaca_id = v.id
+     WHERE v.user_id = ? AND p.data >= date('now', '-1 day')
+     GROUP BY date(p.data)
+     ORDER BY dia DESC
+     LIMIT 2`,
+    [userId]
+  );
+
+  const todayStr = new Date().toISOString().split("T")[0];
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().split("T")[0];
+  const hoje = rows.find(r => r.dia === todayStr)?.total || 0;
+  const ontem = rows.find(r => r.dia === yesterdayStr)?.total || 0;
+  const variacao = +(hoje - ontem).toFixed(2);
+  const variacao_pct = ontem > 0 ? +((variacao / ontem) * 100).toFixed(1) : null;
+
+  return { hoje_litros: hoje, ontem_litros: ontem, variacao_litros: variacao, variacao_pct };
 }
 
 async function create(data, userId) {
@@ -73,4 +100,4 @@ async function remove(id, userId) {
   }
 }
 
-module.exports = { getAll, create, update, remove };
+module.exports = { getAll, getDailyVariation, create, update, remove };

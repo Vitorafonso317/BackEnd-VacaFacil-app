@@ -65,9 +65,6 @@ async function remove(id, userId) {
     throw err;
   }
 
-  await db.run("DELETE FROM producao WHERE vaca_id = ?", [id]);
-  await db.run("DELETE FROM reproducao WHERE vaca_id = ?", [id]);
-
   const result = await db.run("DELETE FROM vacas WHERE id = ? AND user_id = ?", [id, userId]);
   if (!result.changes) {
     const err = new Error("Vaca não encontrada");

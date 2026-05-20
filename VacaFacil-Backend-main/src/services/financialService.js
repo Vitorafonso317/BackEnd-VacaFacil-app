@@ -63,4 +63,23 @@ async function remove(id, tipo, userId) {
   }
 }
 
-module.exports = { getByTipo, create, update, remove };
+async function resumo(userId) {
+  const row = await db.get(
+    `SELECT
+       COALESCE(SUM(CASE WHEN tipo = 'receita' THEN valor END), 0) as receitas_total,
+       COALESCE(SUM(CASE WHEN tipo = 'despesa' THEN valor END), 0) as despesas_total,
+       COUNT(CASE WHEN tipo = 'receita' THEN 1 END) as receitas_count,
+       COUNT(CASE WHEN tipo = 'despesa' THEN 1 END) as despesas_count
+     FROM financeiro WHERE user_id = ?`,
+    [userId]
+  );
+  return {
+    receitas_total: +row.receitas_total.toFixed(2),
+    despesas_total: +row.despesas_total.toFixed(2),
+    saldo: +(row.receitas_total - row.despesas_total).toFixed(2),
+    receitas_count: row.receitas_count,
+    despesas_count: row.despesas_count,
+  };
+}
+
+module.exports = { getByTipo, resumo, create, update, remove };
