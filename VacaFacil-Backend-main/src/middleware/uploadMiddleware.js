@@ -1,21 +1,10 @@
 const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const { v2: cloudinary } = require("cloudinary");
 
-const uploadDir = path.resolve(__dirname, "../uploads/vacas");
-
-// Garante que a pasta existe mesmo após restart
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, uploadDir),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e6)}${ext}`;
-    cb(null, unique);
-  },
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 function fileFilter(_req, file, cb) {
@@ -27,10 +16,34 @@ function fileFilter(_req, file, cb) {
   }
 }
 
+// Armazena em memória e envia para o Cloudinary no controller
 const upload = multer({
-  storage,
+  storage: multer.memoryStorage(),
   fileFilter,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-module.exports = upload;
+async function uploadToCloudinary(buffer, folder) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "image" },
+      (err, result) => (err ? reject(err) : resolve(result.secure_url))
+    );
+    stream.end(buffer);
+  });
+}
+
+async function deleteFromCloudinary(url) {
+  if (!url || !url.includes("cloudinary.com")) return;
+  try {
+    // Extrai o public_id da URL (ex: vacafacil/vacas/abc123)
+    const parts = url.split("/");
+    const filename = parts[parts.length - 1].split(".")[0];
+    const folder = parts[parts.length - 2];
+    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+  } catch {
+    // ignora erro se imagem já não existe
+  }
+}
+
+module.exports = { upload, uploadToCloudinary, deleteFromCloudinary };

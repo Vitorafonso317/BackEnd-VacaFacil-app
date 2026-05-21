@@ -1,8 +1,7 @@
 const bcrypt = require("bcryptjs");
-const path = require("path");
-const fs = require("fs");
 const db = require("../database/database");
 const { ok, noData } = require("../middleware/response");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../middleware/uploadMiddleware");
 
 const USER_SELECT = `
   SELECT u.id, u.nome, u.email, u.foto_url, u.created_at, u.last_login,
@@ -51,16 +50,10 @@ async function uploadFoto(req, res, next) {
       throw err;
     }
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const fotoUrl = `${baseUrl}/uploads/usuarios/${req.file.filename}`;
-
-    // Remove foto antiga se existir
     const user = await db.get("SELECT foto_url FROM users WHERE id = ?", [req.user.id]);
-    if (user?.foto_url) {
-      const oldFile = path.resolve(__dirname, "../uploads/usuarios", path.basename(user.foto_url));
-      fs.unlink(oldFile, () => {});
-    }
+    await deleteFromCloudinary(user?.foto_url);
 
+    const fotoUrl = await uploadToCloudinary(req.file.buffer, "vacafacil/usuarios");
     await db.run("UPDATE users SET foto_url = ? WHERE id = ?", [fotoUrl, req.user.id]);
     return ok(res, { foto_url: fotoUrl }, "Foto atualizada com sucesso");
   } catch (err) { next(err); }

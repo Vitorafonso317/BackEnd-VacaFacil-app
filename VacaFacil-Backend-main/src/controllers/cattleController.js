@@ -1,7 +1,6 @@
 const cattleService = require("../services/cattleService");
 const { ok, created, noData, paginated } = require("../middleware/response");
-const path = require("path");
-const fs = require("fs");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../middleware/uploadMiddleware");
 
 async function getAll(req, res, next) {
   try {
@@ -48,16 +47,10 @@ async function uploadFoto(req, res, next) {
       throw err;
     }
 
-    const baseUrl = `${req.protocol}://${req.get("host")}`;
-    const fotoUrl = `${baseUrl}/uploads/vacas/${req.file.filename}`;
-
-    // Remove foto antiga se existir
     const vaca = await cattleService.getOne(req.params.id, req.user.id);
-    if (vaca.foto_url) {
-      const oldFile = path.resolve(__dirname, "../uploads/vacas", path.basename(vaca.foto_url));
-      fs.unlink(oldFile, () => {}); // ignora erro se arquivo não existir
-    }
+    await deleteFromCloudinary(vaca.foto_url);
 
+    const fotoUrl = await uploadToCloudinary(req.file.buffer, "vacafacil/vacas");
     await cattleService.updateFoto(req.params.id, fotoUrl, req.user.id);
     return ok(res, { foto_url: fotoUrl }, "Foto atualizada com sucesso");
   } catch (err) { next(err); }

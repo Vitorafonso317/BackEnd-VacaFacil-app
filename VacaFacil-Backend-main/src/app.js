@@ -7,8 +7,20 @@ const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
 
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : ["http://localhost:8081"];
+
 app.set("trust proxy", 1);
-app.use(cors());
+app.use(cors({
+  origin: (origin, callback) => {
+    // Permite requests sem origin (ex: apps mobile nativos, Postman, curl)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error(`CORS: origem não permitida — ${origin}`));
+  },
+  credentials: true,
+}));
 app.use(express.json());
 
 // Serve as fotos das vacas como arquivos estáticos

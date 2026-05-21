@@ -32,21 +32,7 @@ async function getStatus(req, res, next) {
        JOIN planos p ON a.plano_id = p.id WHERE a.user_id = ?`,
       [req.user.id]
     );
-    return ok(res, row || { status: "sem assinatura" }, "Status da assinatura");
-  } catch (err) { next(err); }
-}
-
-async function upgrade(req, res, next) {
-  try {
-    const { plano_id } = req.body;
-    if (!plano_id) return res.status(400).json({ success: false, message: "plano_id é obrigatório" });
-
-    const result = await db.run(
-      "UPDATE assinaturas SET plano_id = ? WHERE user_id = ?",
-      [plano_id, req.user.id]
-    );
-    if (!result.changes) return res.status(404).json({ success: false, message: "Assinatura não encontrada" });
-    return noData(res, "Plano atualizado com sucesso");
+    return ok(res, row || { status: "sem assinatura", plano_nome: "Gratuito" }, "Status da assinatura");
   } catch (err) { next(err); }
 }
 
@@ -61,4 +47,4 @@ async function cancel(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getPlans, subscribe, getStatus, upgrade, cancel };
+module.exports = { getPlans, subscribe, getStatus, cancel };
