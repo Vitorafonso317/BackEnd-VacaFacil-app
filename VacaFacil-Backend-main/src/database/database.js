@@ -1,32 +1,20 @@
-const sqlite3 = require("sqlite3").verbose();
-const path = require("path");
+const { createClient } = require("@libsql/client");
 
 class Database {
   constructor() {
-    this.db = null;
+    this.client = null;
   }
 
   async connect() {
-    try {
-      const dbPath = path.resolve(__dirname, "../database.sqlite");
+    const url = process.env.TURSO_URL || "file:database.sqlite";
+    const authToken = process.env.TURSO_AUTH_TOKEN;
 
-      this.db = await new Promise((resolve, reject) => {
-        const database = new sqlite3.Database(dbPath, (err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve(database);
-          }
-        });
-      });
+    this.client = createClient({ url, ...(authToken ? { authToken } : {}) });
 
-      console.log("💾 SQLite connected successfully");
+    const target = url.startsWith("libsql://") ? `Turso (${url})` : `SQLite local (${url})`;
+    console.log(`💾 Database connected: ${target}`);
 
-      await this.initTables();
-    } catch (error) {
-      console.error("❌ Database connection failed:", error);
-      throw error;
-    }
+    await this.initTables();
   }
 
   async initTables() {
@@ -36,6 +24,7 @@ class Database {
         nome TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
         password TEXT NOT NULL,
+        foto_url TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         last_login DATETIME
       )`,
@@ -46,6 +35,7 @@ class Database {
         idade INTEGER,
         peso REAL,
         status_saude TEXT DEFAULT 'saudavel',
+        foto_url TEXT,
         user_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -84,6 +74,7 @@ class Database {
         descricao TEXT,
         preco REAL NOT NULL,
         categoria TEXT,
+        contato TEXT,
         user_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -111,7 +102,7 @@ class Database {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (plano_id) REFERENCES planos(id)
-      )`
+      )`,
     ];
 
     for (const sql of tables) {
@@ -120,70 +111,32 @@ class Database {
 
     await this.run(`INSERT OR IGNORE INTO planos (id, nome, preco, descricao) VALUES
       (1, 'Gratuito', 0, 'Plano basico'),
-      (2, 'Pro', 29.90, 'Plano profissional'),
-      (3, 'Premium', 59.90, 'Plano premium')`);
-
-    // Migrations: adiciona colunas novas sem quebrar banco existente
-    await this.run(`ALTER TABLE vacas ADD COLUMN foto_url TEXT`).catch(() => {});
-    await this.run(`ALTER TABLE users ADD COLUMN foto_url TEXT`).catch(() => {});
-    await this.run(`ALTER TABLE marketplace ADD COLUMN contato TEXT`).catch(() => {});
+      (2, 'Ouro', 29.90, 'Plano profissional'),
+      (3, 'Diamante', 59.90, 'Plano premium')`);
 
     console.log("✅ Tables created/verified");
   }
 
   async query(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(rows);
-        }
-      });
-    });
+    const result = await this.client.execute({ sql, args: params });
+    return result.rows.map(row => ({ ...row }));
   }
 
   async get(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err, row) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve(row || null);
-        }
-      });
-    });
+    const result = await this.client.execute({ sql, args: params });
+    return result.rows[0] ? { ...result.rows[0] } : null;
   }
 
   async run(sql, params = []) {
-    return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function (err) {
-        if (err) {
-          reject(err);
-        } else {
-          resolve({
-            id: this.lastID,
-            changes: this.changes
-          });
-        }
-      });
-    });
+    const result = await this.client.execute({ sql, args: params });
+    return {
+      id: Number(result.lastInsertRowid),
+      changes: result.rowsAffected,
+    };
   }
 
   async close() {
-    if (this.db) {
-      await new Promise((resolve, reject) => {
-        this.db.close((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-
-      console.log("💾 Database connection closed");
-    }
+    console.log("💾 Database connection closed");
   }
 }
 
