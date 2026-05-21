@@ -1,7 +1,7 @@
 const router = require("express").Router();
 const auth = require("../middleware/authMiddleware");
 const { validate, rules } = require("../middleware/validateMiddleware");
-const upload = require("../middleware/uploadMiddleware");
+const { upload } = require("../middleware/uploadMiddleware");
 const c = require("../controllers/cattleController");
 
 router.use(auth);
