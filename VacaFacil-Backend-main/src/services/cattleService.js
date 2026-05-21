@@ -3,7 +3,7 @@ const db = require("../database/database");
 async function getAll(userId, page, limit) {
   const offset = (page - 1) * limit;
   const [rows, countRow] = await Promise.all([
-    db.query("SELECT * FROM vacas WHERE user_id = ? LIMIT ? OFFSET ?", [userId, limit, offset]),
+    db.query("SELECT * FROM vacas WHERE user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?", [userId, limit, offset]),
     db.get("SELECT COUNT(*) as total FROM vacas WHERE user_id = ?", [userId]),
   ]);
   return { rows, total: countRow.total };

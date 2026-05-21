@@ -88,7 +88,7 @@ async function getMine(req, res, next) {
       ),
       db.get("SELECT COUNT(*) as total FROM marketplace WHERE user_id = ?", [req.user.id]),
     ]);
-    return paginated(res, rows, countRow.total, page, limit, "Meus anúncios");
+    return paginated(res, rows.map(parseItem), countRow.total, page, limit, "Meus anúncios");
   } catch (err) { next(err); }
 }
 
