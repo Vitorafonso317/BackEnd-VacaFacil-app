@@ -43,15 +43,22 @@ async function recommendations(req, res, next) {
 
 async function financialForecast(req, res, next) {
   try {
-    const rows = await db.query(
-      "SELECT tipo, valor FROM financeiro WHERE user_id = ? ORDER BY data DESC LIMIT 60",
-      [req.user.id]
-    );
+    const [rows, saldoRow] = await Promise.all([
+      db.query(
+        "SELECT tipo, valor FROM financeiro WHERE user_id = ? ORDER BY data DESC LIMIT 60",
+        [req.user.id]
+      ),
+      db.get(
+        "SELECT COALESCE(SUM(CASE WHEN tipo='receita' THEN valor ELSE -valor END), 0) AS saldo FROM financeiro WHERE user_id = ?",
+        [req.user.id]
+      ),
+    ]);
     const receitas = rows.filter(r => r.tipo === "receita").reduce((s, r) => s + r.valor, 0);
     const despesas = rows.filter(r => r.tipo === "despesa").reduce((s, r) => s + r.valor, 0);
     return ok(res, {
       previsao_receita_proximo_mes: +(receitas / 2).toFixed(2),
       previsao_despesa_proximo_mes: +(despesas / 2).toFixed(2),
+      saldo: +(saldoRow?.saldo ?? 0).toFixed(2),
     }, "Previsão financeira");
   } catch (err) { next(err); }
 }

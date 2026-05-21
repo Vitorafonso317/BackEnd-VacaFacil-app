@@ -1,5 +1,11 @@
 const db = require("../database/database");
 const { ok, created, noData, paginated } = require("../middleware/response");
+const { uploadToCloudinary } = require("../middleware/uploadMiddleware");
+
+function parseItem(row) {
+  if (!row) return row;
+  return { ...row, fotos: row.fotos ? JSON.parse(row.fotos) : [] };
+}
 
 async function getAll(req, res, next) {
   try {
@@ -11,7 +17,7 @@ async function getAll(req, res, next) {
       db.query("SELECT * FROM marketplace ORDER BY created_at DESC LIMIT ? OFFSET ?", [limit, offset]),
       db.get("SELECT COUNT(*) as total FROM marketplace"),
     ]);
-    return paginated(res, rows, countRow.total, page, limit, "Lista do marketplace");
+    return paginated(res, rows.map(parseItem), countRow.total, page, limit, "Lista do marketplace");
   } catch (err) { next(err); }
 }
 
@@ -19,18 +25,18 @@ async function getOne(req, res, next) {
   try {
     const row = await db.get("SELECT * FROM marketplace WHERE id = ?", [req.params.id]);
     if (!row) return res.status(404).json({ success: false, message: "Anúncio não encontrado" });
-    return ok(res, row, "Anúncio encontrado");
+    return ok(res, parseItem(row), "Anúncio encontrado");
   } catch (err) { next(err); }
 }
 
 async function create(req, res, next) {
   try {
-    const { titulo, descricao, preco, categoria, contato } = req.body;
+    const { titulo, descricao, preco, categoria, contato, vaca_id } = req.body;
     const result = await db.run(
-      "INSERT INTO marketplace (titulo, descricao, preco, categoria, contato, user_id) VALUES (?, ?, ?, ?, ?, ?)",
-      [titulo, descricao || null, preco, categoria || null, contato || null, req.user.id]
+      "INSERT INTO marketplace (titulo, descricao, preco, categoria, contato, vaca_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [titulo, descricao || null, preco, categoria || null, contato || null, vaca_id || null, req.user.id]
     );
-    return created(res, { id: result.id, titulo, descricao, preco, categoria, contato }, "Anúncio criado com sucesso");
+    return created(res, { id: result.id, titulo, descricao, preco, categoria, contato, vaca_id }, "Anúncio criado com sucesso");
   } catch (err) { next(err); }
 }
 
@@ -86,4 +92,27 @@ async function getMine(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { getAll, getOne, getMine, create, update, remove };
+async function uploadFoto(req, res, next) {
+  try {
+    if (!req.file) {
+      const err = new Error("Nenhuma imagem enviada"); err.status = 400; throw err;
+    }
+    const item = await db.get(
+      "SELECT id, fotos FROM marketplace WHERE id = ? AND user_id = ?",
+      [req.params.id, req.user.id]
+    );
+    if (!item) return res.status(404).json({ success: false, message: "Anúncio não encontrado" });
+
+    const fotos = item.fotos ? JSON.parse(item.fotos) : [];
+    if (fotos.length >= 3) {
+      return res.status(400).json({ success: false, message: "Máximo de 3 fotos por anúncio" });
+    }
+
+    const fotoUrl = await uploadToCloudinary(req.file.buffer, "vacafacil/marketplace");
+    fotos.push(fotoUrl);
+    await db.run("UPDATE marketplace SET fotos = ? WHERE id = ?", [JSON.stringify(fotos), req.params.id]);
+    return ok(res, { foto_url: fotoUrl, fotos }, "Foto adicionada com sucesso");
+  } catch (err) { next(err); }
+}
+
+module.exports = { getAll, getOne, getMine, create, update, remove, uploadFoto };

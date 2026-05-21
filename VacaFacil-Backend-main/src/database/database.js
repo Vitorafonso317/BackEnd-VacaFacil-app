@@ -75,9 +75,12 @@ class Database {
         preco REAL NOT NULL,
         categoria TEXT,
         contato TEXT,
+        vaca_id INTEGER,
+        fotos TEXT,
         user_id INTEGER NOT NULL,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+        FOREIGN KEY (vaca_id) REFERENCES vacas(id) ON DELETE SET NULL
       )`,
       `CREATE TABLE IF NOT EXISTS notificacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -113,6 +116,28 @@ class Database {
       (1, 'Gratuito', 0, 'Plano basico'),
       (2, 'Ouro', 29.90, 'Plano profissional'),
       (3, 'Diamante', 59.90, 'Plano premium')`);
+
+    // Migrations: adiciona colunas novas em tabelas existentes (ignora se já existir)
+    const migrations = [
+      "ALTER TABLE marketplace ADD COLUMN vaca_id INTEGER REFERENCES vacas(id) ON DELETE SET NULL",
+      "ALTER TABLE marketplace ADD COLUMN fotos TEXT",
+    ];
+    for (const sql of migrations) {
+      try { await this.run(sql); } catch { /* coluna já existe */ }
+    }
+
+    // Indexes para queries frequentes por user_id / vaca_id
+    const indexes = [
+      "CREATE INDEX IF NOT EXISTS idx_vacas_user_id ON vacas(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_producao_vaca_id ON producao(vaca_id)",
+      "CREATE INDEX IF NOT EXISTS idx_financeiro_user_id ON financeiro(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_marketplace_user_id ON marketplace(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_notificacoes_user_id ON notificacoes(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_assinaturas_user_id ON assinaturas(user_id)",
+    ];
+    for (const sql of indexes) {
+      await this.run(sql);
+    }
 
     console.log("✅ Tables created/verified");
   }

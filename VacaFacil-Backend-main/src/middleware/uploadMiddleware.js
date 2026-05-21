@@ -36,11 +36,13 @@ async function uploadToCloudinary(buffer, folder) {
 async function deleteFromCloudinary(url) {
   if (!url || !url.includes("cloudinary.com")) return;
   try {
-    // Extrai o public_id da URL (ex: vacafacil/vacas/abc123)
-    const parts = url.split("/");
-    const filename = parts[parts.length - 1].split(".")[0];
-    const folder = parts[parts.length - 2];
-    await cloudinary.uploader.destroy(`${folder}/${filename}`);
+    // Extrai public_id correto: tudo após "/upload/vXXXX/" sem extensão
+    // Ex: ".../upload/v1234/vacafacil/vacas/abc.jpg" → "vacafacil/vacas/abc"
+    const [, afterUpload] = url.split("/upload/");
+    if (!afterUpload) return;
+    const withoutVersion = afterUpload.replace(/^v\d+\//, "");
+    const publicId = withoutVersion.replace(/\.[^/.]+$/, "");
+    await cloudinary.uploader.destroy(publicId);
   } catch {
     // ignora erro se imagem já não existe
   }
