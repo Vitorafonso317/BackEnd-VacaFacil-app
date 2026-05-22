@@ -26,7 +26,14 @@ const upload = multer({
 async function uploadToCloudinary(buffer, folder) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "image" },
+      {
+        folder,
+        resource_type: "image",
+        quality: "auto:good",   // compressão automática sem perda visível
+        fetch_format: "auto",   // converte para WebP/AVIF nos browsers que suportam
+        width: 900,
+        crop: "limit",          // nunca aumenta imagens menores que 900px
+      },
       (err, result) => (err ? reject(err) : resolve(result.secure_url))
     );
     stream.end(buffer);
