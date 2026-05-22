@@ -1,6 +1,6 @@
 const db = require("../database/database");
 const { ok, created, noData, paginated } = require("../middleware/response");
-const { uploadToCloudinary } = require("../middleware/uploadMiddleware");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../middleware/uploadMiddleware");
 
 function parseItem(row) {
   if (!row) return row;
@@ -42,7 +42,7 @@ async function create(req, res, next) {
 
 async function update(req, res, next) {
   try {
-    const { titulo, descricao, preco, categoria, contato } = req.body;
+    const { titulo, descricao, preco, categoria, contato, fotos } = req.body;
     const fields = [];
     const values = [];
 
@@ -51,6 +51,19 @@ async function update(req, res, next) {
     if (preco !== undefined) { fields.push("preco = ?"); values.push(preco); }
     if (categoria !== undefined) { fields.push("categoria = ?"); values.push(categoria); }
     if (contato !== undefined) { fields.push("contato = ?"); values.push(contato); }
+
+    if (fotos !== undefined) {
+      const item = await db.get(
+        "SELECT fotos FROM marketplace WHERE id = ? AND user_id = ?",
+        [req.params.id, req.user.id]
+      );
+      const oldFotos = item?.fotos ? JSON.parse(item.fotos) : [];
+      const newFotos = Array.isArray(fotos) ? fotos : JSON.parse(fotos);
+      const removed = oldFotos.filter(url => !newFotos.includes(url));
+      await Promise.allSettled(removed.map(url => deleteFromCloudinary(url)));
+      fields.push("fotos = ?");
+      values.push(JSON.stringify(newFotos));
+    }
 
     if (!fields.length) return res.status(400).json({ success: false, message: "Nenhum campo para atualizar" });
 
