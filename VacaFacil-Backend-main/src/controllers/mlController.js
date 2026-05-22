@@ -25,7 +25,59 @@ async function analyzePerformance(req, res, next) {
 
 async function detectAnomalies(req, res, next) {
   try {
-    return ok(res, { anomalias: [], status: "Nenhuma anomalia detectada" }, "Detecção de anomalias");
+    // Busca as últimas 8 produções de cada vaca (1 mais recente + 7 para a média)
+    const rows = await db.query(
+      `SELECT p.vaca_id, v.nome AS vaca_nome, p.litros, p.data
+       FROM producao p
+       JOIN vacas v ON p.vaca_id = v.id
+       WHERE v.user_id = ?
+       ORDER BY p.vaca_id, p.data DESC`,
+      [req.user.id]
+    );
+
+    // Agrupa registros por vaca
+    const porVaca = {};
+    for (const row of rows) {
+      if (!porVaca[row.vaca_id]) porVaca[row.vaca_id] = { nome: row.vaca_nome, registros: [] };
+      porVaca[row.vaca_id].registros.push(row.litros);
+    }
+
+    const anomalias = [];
+
+    for (const [vacaId, { nome, registros }] of Object.entries(porVaca)) {
+      // Precisa de ao menos 3 registros para ser estatisticamente válido
+      if (registros.length < 3) continue;
+
+      const ultimoRegistro = registros[0];
+      const janela = registros.slice(1, 8); // até 7 registros anteriores
+      const media = janela.reduce((s, v) => s + v, 0) / janela.length;
+
+      if (media === 0) continue;
+
+      const quedaPct = ((media - ultimoRegistro) / media) * 100;
+
+      if (quedaPct >= 20) {
+        const severidade = quedaPct >= 30 ? "alta" : "media";
+        const sugestao = severidade === "alta"
+          ? "Verifique imediatamente o úbere. Sintomas de mastite ou febre."
+          : "Monitore a alimentação e hidratação. Possível estresse ou mudança de dieta.";
+
+        anomalias.push({
+          vaca_id: parseInt(vacaId),
+          vaca_nome: nome,
+          ultimo_registro: +ultimoRegistro.toFixed(1),
+          media_7_dias: +media.toFixed(1),
+          queda_pct: +quedaPct.toFixed(1),
+          mensagem: `Queda de ${quedaPct.toFixed(0)}% abaixo da média semanal (${media.toFixed(1)}L → ${ultimoRegistro.toFixed(1)}L).`,
+          severidade,
+          sugestao,
+        });
+      }
+    }
+
+    anomalias.sort((a, b) => b.queda_pct - a.queda_pct);
+
+    return ok(res, { anomalias, total: anomalias.length }, "Detecção de anomalias");
   } catch (err) { next(err); }
 }
 

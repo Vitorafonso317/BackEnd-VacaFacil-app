@@ -51,6 +51,7 @@ app.use("/notifications", require("./routes/notificacoesRoutes"));
 app.use("/subscriptions", require("./routes/assinaturasRoutes"));
 app.use("/relatorios", require("./routes/relatoriosRoutes"));
 app.use("/ml", require("./routes/mlRoutes"));
+app.use("/medicamentos", require("./routes/medicamentosRoutes"));
 
 app.use(errorMiddleware);
 

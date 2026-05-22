@@ -82,6 +82,18 @@ class Database {
         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
         FOREIGN KEY (vaca_id) REFERENCES vacas(id) ON DELETE SET NULL
       )`,
+      `CREATE TABLE IF NOT EXISTS medicamentos_tratamentos (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        vaca_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        nome_medicamento TEXT NOT NULL,
+        data_aplicacao DATE NOT NULL,
+        dias_carencia INTEGER NOT NULL,
+        observacoes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (vaca_id) REFERENCES vacas(id) ON DELETE CASCADE,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )`,
       `CREATE TABLE IF NOT EXISTS notificacoes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id INTEGER NOT NULL,
@@ -134,6 +146,8 @@ class Database {
       "CREATE INDEX IF NOT EXISTS idx_marketplace_user_id ON marketplace(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_notificacoes_user_id ON notificacoes(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_assinaturas_user_id ON assinaturas(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_medicamentos_user_id ON medicamentos_tratamentos(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_medicamentos_vaca_id ON medicamentos_tratamentos(vaca_id)",
     ];
     for (const sql of indexes) {
       await this.run(sql);

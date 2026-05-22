@@ -6,18 +6,21 @@ async function getAll(req, res, next) {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     const offset = (page - 1) * limit;
+    const vacaId = req.query.vaca_id ? parseInt(req.query.vaca_id) : null;
+
+    const baseWhere = vacaId
+      ? `JOIN vacas v ON r.vaca_id = v.id WHERE v.user_id = ? AND r.vaca_id = ?`
+      : `JOIN vacas v ON r.vaca_id = v.id WHERE v.user_id = ?`;
+    const baseParams = vacaId ? [req.user.id, vacaId] : [req.user.id];
 
     const [rows, countRow] = await Promise.all([
       db.query(
-        `SELECT r.* FROM reproducao r
-         JOIN vacas v ON r.vaca_id = v.id
-         WHERE v.user_id = ? ORDER BY r.data DESC LIMIT ? OFFSET ?`,
-        [req.user.id, limit, offset]
+        `SELECT r.* FROM reproducao r ${baseWhere} ORDER BY r.data DESC LIMIT ? OFFSET ?`,
+        [...baseParams, limit, offset]
       ),
       db.get(
-        `SELECT COUNT(*) as total FROM reproducao r
-         JOIN vacas v ON r.vaca_id = v.id WHERE v.user_id = ?`,
-        [req.user.id]
+        `SELECT COUNT(*) as total FROM reproducao r ${baseWhere}`,
+        baseParams
       ),
     ]);
     return paginated(res, rows, countRow.total, page, limit, "Lista de reprodução");

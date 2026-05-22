@@ -1,4 +1,5 @@
 const db = require("../database/database");
+const { checkCarencia } = require("../controllers/medicamentosController");
 
 async function getAll(userId, page, limit, vacaId = null) {
   const offset = (page - 1) * limit;
@@ -54,11 +55,25 @@ async function create(data, userId) {
     err.status = 404;
     throw err;
   }
+
+  // Verifica carência ativa e inclui aviso na resposta (não bloqueia)
+  const carencia = await checkCarencia(vaca_id, userId);
+
   const result = await db.run(
     "INSERT INTO producao (vaca_id, data, litros, observacoes) VALUES (?, ?, ?, ?)",
     [vaca_id, date, litros, observacoes || null]
   );
-  return { id: result.id, vaca_id, data: date, litros, observacoes };
+
+  return {
+    id: result.id, vaca_id, data: date, litros, observacoes,
+    alerta_carencia: carencia
+      ? {
+          nome_medicamento: carencia.nome_medicamento,
+          data_fim_carencia: carencia.data_fim_carencia,
+          mensagem: `Esta vaca está em período de carência até ${carencia.data_fim_carencia}. O leite não deve ser enviado ao laticínio!`,
+        }
+      : null,
+  };
 }
 
 async function update(id, data, userId) {
