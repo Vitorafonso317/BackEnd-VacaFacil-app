@@ -144,6 +144,8 @@ class Database {
     const migrations = [
       "ALTER TABLE marketplace ADD COLUMN vaca_id INTEGER REFERENCES vacas(id) ON DELETE SET NULL",
       "ALTER TABLE marketplace ADD COLUMN fotos TEXT",
+      "ALTER TABLE marketplace ADD COLUMN latitude REAL",
+      "ALTER TABLE marketplace ADD COLUMN longitude REAL",
     ];
     for (const sql of migrations) {
       try { await this.run(sql); } catch { /* coluna já existe */ }

@@ -31,12 +31,12 @@ async function getOne(req, res, next) {
 
 async function create(req, res, next) {
   try {
-    const { titulo, descricao, preco, categoria, contato, vaca_id } = req.body;
+    const { titulo, descricao, preco, categoria, contato, vaca_id, latitude, longitude } = req.body;
     const result = await db.run(
-      "INSERT INTO marketplace (titulo, descricao, preco, categoria, contato, vaca_id, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [titulo, descricao || null, preco, categoria || null, contato || null, vaca_id || null, req.user.id]
+      "INSERT INTO marketplace (titulo, descricao, preco, categoria, contato, vaca_id, user_id, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+      [titulo, descricao || null, preco, categoria || null, contato || null, vaca_id || null, req.user.id, latitude ?? null, longitude ?? null]
     );
-    return created(res, { id: result.id, titulo, descricao, preco, categoria, contato, vaca_id }, "Anúncio criado com sucesso");
+    return created(res, { id: result.id, titulo, descricao, preco, categoria, contato, vaca_id, latitude, longitude }, "Anúncio criado com sucesso");
   } catch (err) { next(err); }
 }
 
