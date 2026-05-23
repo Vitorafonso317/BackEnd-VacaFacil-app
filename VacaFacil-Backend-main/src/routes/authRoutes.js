@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const rateLimit = require("express-rate-limit");
-const { register, login } = require("../controllers/authController");
+const { register, login, refresh } = require("../controllers/authController");
 const { validate, rules } = require("../middleware/validateMiddleware");
 
 const authLimiter = process.env.NODE_ENV === "test"
@@ -12,6 +12,7 @@ const authLimiter = process.env.NODE_ENV === "test"
     });
 
 router.post("/register", authLimiter, rules.register, validate, register);
-router.post("/login", authLimiter, rules.login, validate, login);
+router.post("/login",    authLimiter, rules.login,    validate, login);
+router.post("/refresh",  refresh);
 
 module.exports = router;

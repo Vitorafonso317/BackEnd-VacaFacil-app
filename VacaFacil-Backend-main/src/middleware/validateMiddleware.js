@@ -59,8 +59,8 @@ const rules = {
       .isLength({ max: 2000 }).withMessage("descricao deve ter no máximo 2000 caracteres"),
     body("preco").isFloat({ min: 0.01 }).withMessage("preco deve ser maior que zero"),
     body("categoria").optional()
-      .isIn(["Bovino", "Insumo", "Equipamento", "Outro"])
-      .withMessage("categoria deve ser: Bovino, Insumo, Equipamento ou Outro"),
+      .isIn(["Bovino"])
+      .withMessage("categoria deve ser: Bovino"),
   ],
   marketplaceUpdate: [
     body("titulo").optional().trim()
@@ -69,8 +69,8 @@ const rules = {
       .isLength({ max: 2000 }).withMessage("descricao deve ter no máximo 2000 caracteres"),
     body("preco").optional().isFloat({ min: 0.01 }).withMessage("preco deve ser maior que zero"),
     body("categoria").optional()
-      .isIn(["Bovino", "Insumo", "Equipamento", "Outro"])
-      .withMessage("categoria deve ser: Bovino, Insumo, Equipamento ou Outro"),
+      .isIn(["Bovino"])
+      .withMessage("categoria deve ser: Bovino"),
   ],
   user: [
     body("nome").optional().trim()

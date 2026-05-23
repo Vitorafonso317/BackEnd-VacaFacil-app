@@ -1,5 +1,5 @@
 const authService = require("../services/authService");
-const { ok, created, fail } = require("../middleware/response");
+const { ok, created } = require("../middleware/response");
 
 async function register(req, res, next) {
   try {
@@ -17,4 +17,13 @@ async function login(req, res, next) {
   } catch (err) { next(err); }
 }
 
-module.exports = { register, login };
+async function refresh(req, res, next) {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(400).json({ success: false, message: "refreshToken é obrigatório." });
+    const result = await authService.refresh(refreshToken);
+    return ok(res, result, "Token renovado com sucesso");
+  } catch (err) { next(err); }
+}
+
+module.exports = { register, login, refresh };

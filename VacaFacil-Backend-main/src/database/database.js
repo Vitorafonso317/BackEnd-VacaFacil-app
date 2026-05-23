@@ -129,6 +129,17 @@ class Database {
       (2, 'Ouro', 29.90, 'Plano profissional'),
       (3, 'Diamante', 59.90, 'Plano premium')`);
 
+    // Tabela de refresh tokens
+    await this.run(`CREATE TABLE IF NOT EXISTS refresh_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      expires_at DATETIME NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    await this.run(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)`);
+
     // Migrations: adiciona colunas novas em tabelas existentes (ignora se já existir)
     const migrations = [
       "ALTER TABLE marketplace ADD COLUMN vaca_id INTEGER REFERENCES vacas(id) ON DELETE SET NULL",
