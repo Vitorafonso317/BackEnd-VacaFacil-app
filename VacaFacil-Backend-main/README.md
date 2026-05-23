@@ -1,52 +1,72 @@
 # VacaFácil — Backend API
 
-API REST para gestão de fazendas leiteiras. Controle de rebanho, produção de leite, financeiro, reprodução, marketplace e muito mais.
+> API REST para gestão de fazendas leiteiras. Controle de rebanho, produção de leite, financeiro, reprodução, saúde animal, marketplace bovino e inteligência artificial — com autenticação JWT + Refresh Token e banco na nuvem via Turso.
+
+![Node.js](https://img.shields.io/badge/Node.js-18+-339933?logo=nodedotjs)
+![Express](https://img.shields.io/badge/Express-4.22-000000?logo=express)
+![Turso](https://img.shields.io/badge/Turso-libSQL-4FF8D2)
+![Jest](https://img.shields.io/badge/Jest-58_testes-C21325?logo=jest)
+
+---
 
 ## Stack
 
-- Node.js + Express
-- SQLite (via sqlite3)
-- JWT para autenticação
-- Swagger UI para documentação interativa
-- Jest + Supertest para testes
+| Tecnologia | Uso |
+|---|---|
+| Node.js + Express | Framework HTTP |
+| Turso (libSQL / SQLite) | Banco de dados na nuvem |
+| JWT + Refresh Token | Autenticação stateless com rotação de tokens |
+| bcryptjs | Hash de senhas |
+| Cloudinary | Upload e otimização de imagens |
+| compression (gzip) | Compressão de respostas HTTP (~70% redução) |
+| express-validator | Validação de entrada |
+| express-rate-limit | Rate limiting em endpoints de auth |
+| Swagger UI | Documentação interativa em `/docs` |
+| Jest + Supertest | Testes de integração com banco em memória |
 
 ---
 
 ## Instalação
 
 ```bash
-# Clonar o repositório
 git clone <url-do-repositorio>
 cd VacaFacil-Backend-main
 
-# Instalar dependências
 npm install
 
-# Criar arquivo de variáveis de ambiente
 cp .env.example .env
-# Edite o .env e defina um JWT_SECRET seguro
+# Preencha as variáveis no .env
 
-# Iniciar em desenvolvimento
-npm run dev
-
-# Iniciar em produção
-npm start
+npm run dev    # Desenvolvimento com nodemon
+npm start      # Produção
 ```
 
 ---
 
-## Variáveis de Ambiente
-
-Crie um arquivo `.env` na raiz do projeto:
+## Variáveis de ambiente
 
 ```env
 PORT=5000
-JWT_SECRET=sua_chave_secreta_aqui
+
+# Banco de dados Turso (ou deixe vazio para SQLite local)
+TURSO_URL=libsql://seu-banco.turso.io
+TURSO_AUTH_TOKEN=seu_token_turso
+
+# Autenticação
+JWT_SECRET=sua_chave_jwt_segura
+
+# Cloudinary (upload de imagens)
+CLOUDINARY_CLOUD_NAME=seu_cloud_name
+CLOUDINARY_API_KEY=sua_api_key
+CLOUDINARY_API_SECRET=sua_api_secret
+
+# CORS (opcional — domínios permitidos separados por vírgula)
+ALLOWED_ORIGINS=http://localhost:8081
 ```
 
 ---
 
-## Documentação Interativa
+## Documentação interativa
 
 Com o servidor rodando, acesse:
 
@@ -54,123 +74,150 @@ Com o servidor rodando, acesse:
 http://localhost:5000/docs
 ```
 
-O Swagger UI lista todos os endpoints com exemplos de request/response. Para testar rotas protegidas:
-
-1. Faça `POST /auth/register` para criar uma conta
-2. Faça `POST /auth/login` e copie o `token` da resposta
-3. Clique em **Authorize** no topo da página e cole o token
+Para testar rotas protegidas:
+1. `POST /auth/register` — cria uma conta
+2. `POST /auth/login` — retorna `token` e `refreshToken`
+3. Clique em **Authorize** e cole o token
 
 ---
 
 ## Endpoints
 
 ### Auth
-| Método | Rota | Descrição |
-|---|---|---|
-| POST | `/auth/register` | Registrar usuário |
-| POST | `/auth/login` | Login — retorna JWT |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/auth/register` | — | Registrar usuário |
+| POST | `/auth/login` | — | Login — retorna JWT + refreshToken |
+| POST | `/auth/refresh` | — | Renova access token via refreshToken |
 
 ### Usuários
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/users/me` | Dados do usuário logado |
-| PUT | `/users/me` | Atualizar dados |
-| DELETE | `/users/me` | Excluir conta |
 
-### Vacas
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/vacas` | Listar vacas (paginado) |
-| POST | `/vacas` | Cadastrar vaca |
-| GET | `/vacas/:id` | Buscar vaca por ID |
-| PUT | `/vacas/:id` | Atualizar vaca |
-| DELETE | `/vacas/:id` | Remover vaca |
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/users/me` | JWT | Dados do usuário logado |
+| PUT | `/users/me` | JWT | Atualizar perfil |
+| PUT | `/users/me/foto` | JWT | Upload de foto de perfil |
+| DELETE | `/users/me` | JWT | Excluir conta |
 
-### Produção
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/producao` | Listar registros (paginado) |
-| POST | `/producao` | Registrar produção |
-| PUT | `/producao/:id` | Atualizar registro |
-| DELETE | `/producao/:id` | Remover registro |
+### Vacas (Rebanho)
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/vacas` | JWT | Listar rebanho (paginado) |
+| POST | `/vacas` | JWT | Cadastrar vaca |
+| GET | `/vacas/:id` | JWT | Buscar vaca por ID |
+| PUT | `/vacas/:id` | JWT | Atualizar vaca |
+| DELETE | `/vacas/:id` | JWT | Remover vaca |
+| POST | `/vacas/:id/foto` | JWT | Upload de foto da vaca |
+
+### Produção de Leite
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/producao` | JWT | Listar registros (paginado) |
+| POST | `/producao` | JWT | Registrar produção (bloqueia se em carência) |
+| PUT | `/producao/:id` | JWT | Atualizar registro |
+| DELETE | `/producao/:id` | JWT | Remover registro |
 
 ### Financeiro
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/financeiro/receitas` | Listar receitas (paginado) |
-| POST | `/financeiro/receitas` | Criar receita |
-| PUT | `/financeiro/receitas/:id` | Atualizar receita |
-| DELETE | `/financeiro/receitas/:id` | Remover receita |
-| GET | `/financeiro/despesas` | Listar despesas (paginado) |
-| POST | `/financeiro/despesas` | Criar despesa |
-| PUT | `/financeiro/despesas/:id` | Atualizar despesa |
-| DELETE | `/financeiro/despesas/:id` | Remover despesa |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/financeiro/receitas` | JWT | Listar receitas (paginado) |
+| POST | `/financeiro/receitas` | JWT | Criar receita |
+| PUT | `/financeiro/receitas/:id` | JWT | Atualizar receita |
+| DELETE | `/financeiro/receitas/:id` | JWT | Remover receita |
+| GET | `/financeiro/despesas` | JWT | Listar despesas (paginado) |
+| POST | `/financeiro/despesas` | JWT | Criar despesa |
+| PUT | `/financeiro/despesas/:id` | JWT | Atualizar despesa |
+| DELETE | `/financeiro/despesas/:id` | JWT | Remover despesa |
 
 ### Reprodução
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/reproducao` | Listar eventos (paginado) |
-| POST | `/reproducao` | Registrar evento |
-| PUT | `/reproducao/:id` | Atualizar evento |
-| DELETE | `/reproducao/:id` | Remover evento |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/reproducao` | JWT | Listar eventos (paginado) |
+| POST | `/reproducao` | JWT | Registrar evento |
+| PUT | `/reproducao/:id` | JWT | Atualizar evento |
+| DELETE | `/reproducao/:id` | JWT | Remover evento |
+
+### Medicamentos e Carência
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/medicamentos` | JWT | Listar tratamentos |
+| POST | `/medicamentos` | JWT | Registrar medicamento aplicado |
+| GET | `/medicamentos/carencia-ativa` | JWT | Listar vacas em carência hoje |
+| PUT | `/medicamentos/:id` | JWT | Atualizar tratamento |
+| DELETE | `/medicamentos/:id` | JWT | Remover tratamento |
 
 ### Marketplace
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/marketplace` | Listar anúncios (paginado) |
-| GET | `/marketplace/:id` | Buscar anúncio |
-| POST | `/marketplace` | Criar anúncio |
-| PUT | `/marketplace/:id` | Atualizar anúncio |
-| DELETE | `/marketplace/:id` | Remover anúncio |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/marketplace` | — | Listar anúncios (paginado) |
+| GET | `/marketplace/mine` | JWT | Meus anúncios |
+| GET | `/marketplace/:id` | — | Buscar anúncio |
+| POST | `/marketplace` | JWT | Criar anúncio (categoria: Bovino) |
+| PUT | `/marketplace/:id` | JWT | Atualizar anúncio |
+| DELETE | `/marketplace/:id` | JWT | Remover anúncio |
+| POST | `/marketplace/:id/foto` | JWT | Adicionar foto (máx. 3) |
 
 ### Notificações
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/notifications` | Listar notificações (paginado) |
-| POST | `/notifications/send` | Criar notificação |
-| GET | `/notifications/unread/count` | Total de não lidas |
-| PUT | `/notifications/mark-all-read` | Marcar todas como lidas |
-| PUT | `/notifications/:id` | Marcar como lida |
-| DELETE | `/notifications/:id` | Remover notificação |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/notifications` | JWT | Listar notificações (paginado) |
+| GET | `/notifications/unread/count` | JWT | Total de não lidas |
+| POST | `/notifications/send` | JWT | Criar notificação |
+| PUT | `/notifications/mark-all-read` | JWT | Marcar todas como lidas |
+| PUT | `/notifications/:id` | JWT | Marcar como lida |
+| DELETE | `/notifications/:id` | JWT | Remover notificação |
 
 ### Assinaturas
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/subscriptions/plans` | Listar planos disponíveis |
-| POST | `/subscriptions/subscribe` | Assinar plano |
-| GET | `/subscriptions/status` | Status da assinatura |
-| PUT | `/subscriptions/upgrade` | Trocar plano |
-| DELETE | `/subscriptions/cancel` | Cancelar assinatura |
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/subscriptions/plans` | — | Listar planos (Gratuito / Ouro / Diamante) |
+| POST | `/subscriptions/subscribe` | JWT | Assinar plano |
+| GET | `/subscriptions/status` | JWT | Status da assinatura |
+| PUT | `/subscriptions/upgrade` | JWT | Trocar plano |
+| DELETE | `/subscriptions/cancel` | JWT | Cancelar assinatura |
 
 ### Relatórios
-| Método | Rota | Descrição |
-|---|---|---|
-| GET | `/relatorios/producao/json` | Relatório de produção |
-| GET | `/relatorios/financeiro/json` | Relatório financeiro |
-| GET | `/relatorios/completo/json` | Relatório completo |
 
-### ML / IA
-| Método | Rota | Descrição |
-|---|---|---|
-| POST | `/ml/predict-production` | Previsão de produção |
-| GET | `/ml/analyze-performance` | Análise de desempenho |
-| GET | `/ml/detect-anomalies` | Detecção de anomalias |
-| GET | `/ml/recommendations` | Recomendações |
-| GET | `/ml/financial-forecast` | Previsão financeira |
-| GET | `/ml/insights` | Insights gerais |
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| GET | `/relatorios/producao/json` | JWT | Relatório de produção |
+| GET | `/relatorios/financeiro/json` | JWT | Relatório financeiro |
+| GET | `/relatorios/completo/json` | JWT | Relatório completo |
+
+### Machine Learning / IA
+
+| Método | Rota | Auth | Descrição |
+|---|---|---|---|
+| POST | `/ml/predict-production` | JWT | Previsão de produção |
+| GET | `/ml/analyze-performance` | JWT | Análise de desempenho do rebanho |
+| GET | `/ml/detect-anomalies` | JWT | Detecção de anomalias na produção |
+| GET | `/ml/recommendations` | JWT | Recomendações de manejo |
+| GET | `/ml/financial-forecast` | JWT | Previsão financeira |
+| GET | `/ml/insights` | JWT | Insights consolidados |
 
 ---
 
-## Paginação
+## Padrão de resposta
 
-Todas as rotas de listagem aceitam query params:
-
+**Sucesso:**
+```json
+{
+  "success": true,
+  "message": "Vaca criada com sucesso",
+  "data": { ... }
+}
 ```
-GET /vacas?page=1&limit=10
-```
 
-Resposta:
-
+**Lista paginada:**
 ```json
 {
   "success": true,
@@ -185,21 +232,6 @@ Resposta:
 }
 ```
 
----
-
-## Padrão de Resposta
-
-Todas as respostas seguem o mesmo formato:
-
-**Sucesso:**
-```json
-{
-  "success": true,
-  "message": "Vaca criada com sucesso",
-  "data": { ... }
-}
-```
-
 **Erro:**
 ```json
 {
@@ -207,6 +239,56 @@ Todas as respostas seguem o mesmo formato:
   "message": "Email já cadastrado"
 }
 ```
+
+---
+
+## Autenticação
+
+O sistema usa **dois tokens**:
+
+| Token | Expiração | Descrição |
+|---|---|---|
+| `token` (JWT) | 1 dia | Enviado no header `Authorization: Bearer <token>` |
+| `refreshToken` | 30 dias | Armazenado no banco com rotação a cada uso |
+
+Fluxo de renovação silenciosa:
+1. Request retorna `401`
+2. `api.ts` do frontend chama `POST /auth/refresh` com o `refreshToken`
+3. API invalida o token antigo, gera um novo par e retorna
+4. Request original é refeito com o novo `token`
+
+---
+
+## Banco de dados
+
+Tabelas principais:
+
+| Tabela | Descrição |
+|---|---|
+| `users` | Usuários da plataforma |
+| `vacas` | Rebanho por usuário |
+| `producao` | Registros diários de leite |
+| `financeiro` | Receitas e despesas |
+| `reproducao` | Eventos reprodutivos |
+| `medicamentos_tratamentos` | Medicamentos aplicados e período de carência |
+| `marketplace` | Anúncios de venda bovina (com lat/lon) |
+| `notificacoes` | Notificações por usuário |
+| `refresh_tokens` | Tokens de renovação com expiração |
+| `planos` / `assinaturas` | Sistema de assinatura |
+
+Índices criados automaticamente para as colunas mais consultadas (`user_id`, `vaca_id`, `data`, `categoria`).
+
+---
+
+## Segurança
+
+- Senhas com **bcrypt** (salt 10)
+- JWT com expiração de **1 dia**, refresh token de **30 dias** com rotação
+- **Rate limiting** em `/auth/login` e `/auth/register` — 20 req / 15 min por IP
+- **Validação de entrada** em todos os endpoints de escrita via `express-validator`
+- **Isolamento por usuário** — cada usuário acessa apenas seus próprios dados
+- **CORS** configurável via `ALLOWED_ORIGINS`
+- **Gzip** em todas as respostas (~70% de redução no tráfego)
 
 ---
 
@@ -221,59 +303,45 @@ Test Suites: 6 passed, 6 total
 Tests:       58 passed, 58 total
 ```
 
-Cobertura:
+| Suite | Cobertura |
+|---|---|
+| `auth.test.js` | Registro, login, validações |
+| `users.test.js` | Perfil, atualização, exclusão |
+| `cattle.test.js` | CRUD completo + isolamento entre usuários |
+| `production.test.js` | CRUD completo + isolamento entre usuários |
+| `financial.test.js` | Receitas, despesas + isolamento |
+| `notifications.test.js` | Envio, leitura, contagem, exclusão |
 
-- `auth.test.js` — registro, login, validações
-- `users.test.js` — perfil, atualização, exclusão
-- `cattle.test.js` — CRUD completo + isolamento entre usuários
-- `production.test.js` — CRUD completo + isolamento entre usuários
-- `financial.test.js` — receitas e despesas + isolamento entre usuários
-- `notifications.test.js` — envio, leitura, contagem, exclusão
-
-Os testes usam banco SQLite em memória — nunca tocam no `database.sqlite` de produção.
-
----
-
-## Segurança
-
-- Senhas com bcrypt (salt 10)
-- JWT com expiração de 7 dias
-- Rate limiting em `/auth/login` e `/auth/register` — 20 requisições por IP a cada 15 minutos
-- Validação de entrada em todos os endpoints de escrita
-- Isolamento de dados por usuário — cada usuário acessa apenas seus próprios recursos
+> Os testes usam banco SQLite **em memória** — nunca tocam no banco de produção.
 
 ---
 
-## Estrutura do Projeto
+## Estrutura do projeto
 
 ```
 src/
+├── app.js                       # Express app (middlewares + rotas)
+├── server.js                    # Inicialização do servidor
 ├── config/
-│   └── swagger.js          # Documentação Swagger
-├── controllers/            # Recebem request/response
-├── services/               # Lógica de negócio
-│   ├── authService.js
+│   └── swagger.js               # Spec OpenAPI/Swagger
+├── database/
+│   └── database.js              # Conexão Turso/SQLite + criação de tabelas + índices
+├── middleware/
+│   ├── authMiddleware.js        # Verificação JWT
+│   ├── validateMiddleware.js    # Regras de validação por entidade
+│   ├── uploadMiddleware.js      # Multer + upload Cloudinary
+│   ├── errorMiddleware.js       # Handler global de erros
+│   └── response.js              # Helpers ok / created / paginated / noData
+├── controllers/                 # Recebem req/res, delegam para services
+├── services/                    # Lógica de negócio
+│   ├── authService.js           # Login, hash, geração de token par
 │   ├── cattleService.js
 │   ├── productionService.js
 │   └── financialService.js
-├── middleware/
-│   ├── authMiddleware.js   # Verificação JWT
-│   ├── validateMiddleware.js # Validação de entrada
-│   ├── errorMiddleware.js  # Tratamento de erros
-│   └── response.js         # Helpers de resposta padronizada
-├── routes/                 # Definição de rotas
-├── database/
-│   └── database.js         # Conexão e criação de tabelas SQLite
-├── app.js
-└── server.js
+└── routes/                      # Definição de rotas por domínio
 tests/
-├── setup.js                # Banco em memória + limpeza
-├── auth.test.js
-├── users.test.js
-├── cattle.test.js
-├── production.test.js
-├── financial.test.js
-└── notifications.test.js
+├── setup.js                     # Banco em memória + limpeza entre testes
+└── *.test.js
 ```
 
 ---
@@ -281,7 +349,13 @@ tests/
 ## Scripts
 
 ```bash
-npm run dev    # Desenvolvimento com nodemon
+npm run dev    # Desenvolvimento com nodemon (hot reload)
 npm start      # Produção
-npm test       # Testes com Jest
+npm test       # Suite de testes Jest
 ```
+
+---
+
+## Licença
+
+Projeto proprietário — VacaFácil © 2025. Todos os direitos reservados.
