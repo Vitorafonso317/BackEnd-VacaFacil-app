@@ -153,8 +153,13 @@ class Database {
     const indexes = [
       "CREATE INDEX IF NOT EXISTS idx_vacas_user_id ON vacas(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_producao_vaca_id ON producao(vaca_id)",
+      "CREATE INDEX IF NOT EXISTS idx_producao_vaca_data ON producao(vaca_id, data DESC)",
+      "CREATE INDEX IF NOT EXISTS idx_reproducao_vaca_id ON reproducao(vaca_id)",
       "CREATE INDEX IF NOT EXISTS idx_financeiro_user_id ON financeiro(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_financeiro_data ON financeiro(user_id, data DESC)",
       "CREATE INDEX IF NOT EXISTS idx_marketplace_user_id ON marketplace(user_id)",
+      "CREATE INDEX IF NOT EXISTS idx_marketplace_categoria ON marketplace(categoria)",
+      "CREATE INDEX IF NOT EXISTS idx_marketplace_created ON marketplace(created_at DESC)",
       "CREATE INDEX IF NOT EXISTS idx_notificacoes_user_id ON notificacoes(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_assinaturas_user_id ON assinaturas(user_id)",
       "CREATE INDEX IF NOT EXISTS idx_medicamentos_user_id ON medicamentos_tratamentos(user_id)",
