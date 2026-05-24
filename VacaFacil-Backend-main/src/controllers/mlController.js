@@ -25,13 +25,16 @@ async function analyzePerformance(req, res, next) {
 
 async function detectAnomalies(req, res, next) {
   try {
-    // Busca as últimas 8 produções de cada vaca (1 mais recente + 7 para a média)
+    // Busca as últimas 8 produções de cada vaca usando window function (evita trazer todo histórico)
     const rows = await db.query(
-      `SELECT p.vaca_id, v.nome AS vaca_nome, p.litros, p.data
-       FROM producao p
-       JOIN vacas v ON p.vaca_id = v.id
-       WHERE v.user_id = ?
-       ORDER BY p.vaca_id, p.data DESC`,
+      `WITH ranked AS (
+         SELECT p.vaca_id, v.nome AS vaca_nome, p.litros, p.data,
+                ROW_NUMBER() OVER (PARTITION BY p.vaca_id ORDER BY p.data DESC) AS rn
+         FROM producao p
+         JOIN vacas v ON p.vaca_id = v.id
+         WHERE v.user_id = ?
+       )
+       SELECT vaca_id, vaca_nome, litros, data FROM ranked WHERE rn <= 8`,
       [req.user.id]
     );
 

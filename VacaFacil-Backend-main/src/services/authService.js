@@ -95,7 +95,8 @@ async function refresh(refreshToken) {
     throw err;
   }
 
-  // Rotaciona: remove o antigo, emite novo par
+  // Rotaciona: remove o antigo + tokens expirados, emite novo par
+  await db.run("DELETE FROM refresh_tokens WHERE user_id = ? AND expires_at <= CURRENT_TIMESTAMP", [row.user_id]);
   await db.run("DELETE FROM refresh_tokens WHERE id = ?", [row.id]);
   const { accessToken, refreshToken: newRefreshToken } = await buildTokenPair(user);
 

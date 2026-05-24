@@ -13,6 +13,6 @@ const authLimiter = process.env.NODE_ENV === "test"
 
 router.post("/register", authLimiter, rules.register, validate, register);
 router.post("/login",    authLimiter, rules.login,    validate, login);
-router.post("/refresh",  refresh);
+router.post("/refresh",  authLimiter, refresh);
 
 module.exports = router;
