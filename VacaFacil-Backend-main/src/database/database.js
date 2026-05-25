@@ -140,6 +140,18 @@ class Database {
     )`);
     await this.run(`CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token ON refresh_tokens(token)`);
 
+    // Tabela de reset de senha (código 6 dígitos com expiração)
+    await this.run(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      code TEXT NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )`);
+    await this.run(`CREATE INDEX IF NOT EXISTS idx_reset_tokens_user ON password_reset_tokens(user_id)`);
+
     // Migrations: adiciona colunas novas em tabelas existentes (ignora se já existir)
     const migrations = [
       "ALTER TABLE marketplace ADD COLUMN vaca_id INTEGER REFERENCES vacas(id) ON DELETE SET NULL",

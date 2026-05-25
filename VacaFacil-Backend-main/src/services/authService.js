@@ -1,7 +1,38 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 const db = require("../database/database");
+
+function createTransporter() {
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT) || 587,
+    secure: false,
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
+}
+
+async function sendResetEmail(email, nome, code) {
+  const transporter = createTransporter();
+  await transporter.sendMail({
+    from: `"VacaFácil" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    to: email,
+    subject: "Código para redefinir sua senha — VacaFácil",
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#F9F7F0;border-radius:12px">
+        <h2 style="color:#4A7028;margin:0 0 8px">VacaFácil</h2>
+        <p style="color:#42473C;margin:0 0 24px">Olá, <strong>${nome}</strong>!</p>
+        <p style="color:#42473C;margin:0 0 16px">Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+        <p style="color:#42473C;margin:0 0 8px">Use o código abaixo no app. Ele expira em <strong>15 minutos</strong>:</p>
+        <div style="background:#fff;border:2px solid #4A7028;border-radius:12px;padding:20px;text-align:center;margin:16px 0">
+          <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#4A7028">${code}</span>
+        </div>
+        <p style="color:#72786A;font-size:13px;margin:16px 0 0">Se não foi você, ignore este e-mail. Sua senha permanece a mesma.</p>
+      </div>
+    `,
+  });
+}
 
 const REFRESH_EXPIRY_DAYS = 30;
 
@@ -103,4 +134,43 @@ async function refresh(refreshToken) {
   return { token: accessToken, refreshToken: newRefreshToken };
 }
 
-module.exports = { register, login, refresh };
+async function forgotPassword(email) {
+  const user = await db.get("SELECT id, nome, email FROM users WHERE email = ?", [email]);
+  if (!user) return; // resposta idêntica para não revelar se o e-mail existe
+
+  // Remove códigos anteriores desse usuário
+  await db.run("DELETE FROM password_reset_tokens WHERE user_id = ?", [user.id]);
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+  await db.run(
+    "INSERT INTO password_reset_tokens (user_id, code, expires_at) VALUES (?, ?, ?)",
+    [user.id, code, expiresAt]
+  );
+
+  await sendResetEmail(user.email, user.nome, code);
+}
+
+async function resetPassword(email, code, newPassword) {
+  const user = await db.get("SELECT id FROM users WHERE email = ?", [email]);
+  if (!user) {
+    const err = new Error("Código inválido ou expirado."); err.status = 400; throw err;
+  }
+
+  const row = await db.get(
+    "SELECT id FROM password_reset_tokens WHERE user_id = ? AND code = ? AND expires_at > CURRENT_TIMESTAMP AND used = 0",
+    [user.id, code]
+  );
+  if (!row) {
+    const err = new Error("Código inválido ou expirado."); err.status = 400; throw err;
+  }
+
+  const hash = await bcrypt.hash(newPassword, 10);
+  await Promise.all([
+    db.run("UPDATE users SET password = ? WHERE id = ?", [hash, user.id]),
+    db.run("UPDATE password_reset_tokens SET used = 1 WHERE id = ?", [row.id]),
+    db.run("DELETE FROM refresh_tokens WHERE user_id = ?", [user.id]), // invalida todas as sessões
+  ]);
+}
+
+module.exports = { register, login, refresh, forgotPassword, resetPassword };

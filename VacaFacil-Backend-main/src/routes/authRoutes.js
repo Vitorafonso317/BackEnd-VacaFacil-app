@@ -1,6 +1,6 @@
 const router = require("express").Router();
 const rateLimit = require("express-rate-limit");
-const { register, login, refresh } = require("../controllers/authController");
+const { register, login, refresh, forgotPassword, resetPassword } = require("../controllers/authController");
 const { validate, rules } = require("../middleware/validateMiddleware");
 
 const authLimiter = process.env.NODE_ENV === "test"
@@ -11,8 +11,10 @@ const authLimiter = process.env.NODE_ENV === "test"
       message: { error: "Muitas tentativas. Tente novamente em 15 minutos." },
     });
 
-router.post("/register", authLimiter, rules.register, validate, register);
-router.post("/login",    authLimiter, rules.login,    validate, login);
-router.post("/refresh",  authLimiter, refresh);
+router.post("/register",        authLimiter, rules.register,       validate, register);
+router.post("/login",           authLimiter, rules.login,          validate, login);
+router.post("/refresh",         authLimiter, refresh);
+router.post("/forgot-password", authLimiter, rules.forgotPassword, validate, forgotPassword);
+router.post("/reset-password",  authLimiter, rules.resetPassword,  validate, resetPassword);
 
 module.exports = router;

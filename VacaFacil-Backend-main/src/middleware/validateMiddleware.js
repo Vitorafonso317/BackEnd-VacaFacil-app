@@ -72,6 +72,15 @@ const rules = {
       .isIn(["Bovino"])
       .withMessage("categoria deve ser: Bovino"),
   ],
+  forgotPassword: [
+    body("email").isEmail().withMessage("e-mail inválido").normalizeEmail(),
+  ],
+  resetPassword: [
+    body("email").isEmail().withMessage("e-mail inválido").normalizeEmail(),
+    body("code").trim().isLength({ min: 6, max: 6 }).withMessage("código deve ter 6 dígitos")
+      .isNumeric().withMessage("código deve conter apenas números"),
+    body("password").isLength({ min: 6 }).withMessage("senha deve ter no mínimo 6 caracteres"),
+  ],
   user: [
     body("nome").optional().trim()
       .isLength({ min: 1, max: 255 }).withMessage("nome deve ter entre 1 e 255 caracteres"),
