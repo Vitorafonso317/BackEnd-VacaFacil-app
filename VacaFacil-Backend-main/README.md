@@ -89,7 +89,7 @@ Para testar rotas protegidas:
 |---|---|---|---|
 | POST | `/auth/register` | — | Registrar usuário |
 | POST | `/auth/login` | — | Login — retorna JWT + refreshToken |
-| POST | `/auth/refresh` | — | Renova access token via refreshToken |
+| POST | `/auth/refresh` | Rate-limit | Renova access token via refreshToken (rotação automática) |
 
 ### Usuários
 
@@ -283,8 +283,8 @@ Tabelas principais:
 ## Segurança
 
 - Senhas com **bcrypt** (salt 10)
-- JWT com expiração de **1 dia**, refresh token de **30 dias** com rotação
-- **Rate limiting** em `/auth/login` e `/auth/register` — 20 req / 15 min por IP
+- JWT com expiração de **1 dia**, refresh token de **30 dias** com rotação automática + limpeza de tokens expirados
+- **Rate limiting** em `/auth/login`, `/auth/register` e `/auth/refresh` — 20 req / 15 min por IP
 - **Validação de entrada** em todos os endpoints de escrita via `express-validator`
 - **Isolamento por usuário** — cada usuário acessa apenas seus próprios dados
 - **CORS** configurável via `ALLOWED_ORIGINS`
