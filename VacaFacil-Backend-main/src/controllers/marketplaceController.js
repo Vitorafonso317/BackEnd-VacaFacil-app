@@ -2,9 +2,13 @@ const db = require("../database/database");
 const { ok, created, noData, paginated } = require("../middleware/response");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../middleware/uploadMiddleware");
 
+function safeJsonParse(str, fallback = []) {
+  try { return str ? JSON.parse(str) : fallback; } catch { return fallback; }
+}
+
 function parseItem(row) {
   if (!row) return row;
-  return { ...row, fotos: row.fotos ? JSON.parse(row.fotos) : [] };
+  return { ...row, fotos: safeJsonParse(row.fotos) };
 }
 
 async function getAll(req, res, next) {
@@ -57,8 +61,8 @@ async function update(req, res, next) {
         "SELECT fotos FROM marketplace WHERE id = ? AND user_id = ?",
         [req.params.id, req.user.id]
       );
-      const oldFotos = item?.fotos ? JSON.parse(item.fotos) : [];
-      const newFotos = Array.isArray(fotos) ? fotos : JSON.parse(fotos);
+      const oldFotos = safeJsonParse(item?.fotos);
+      const newFotos = Array.isArray(fotos) ? fotos : safeJsonParse(fotos);
       const removed = oldFotos.filter(url => !newFotos.includes(url));
       await Promise.allSettled(removed.map(url => deleteFromCloudinary(url)));
       fields.push("fotos = ?");
@@ -116,7 +120,7 @@ async function uploadFoto(req, res, next) {
     );
     if (!item) return res.status(404).json({ success: false, message: "Anúncio não encontrado" });
 
-    const fotos = item.fotos ? JSON.parse(item.fotos) : [];
+    const fotos = safeJsonParse(item.fotos);
     if (fotos.length >= 3) {
       return res.status(400).json({ success: false, message: "Máximo de 3 fotos por anúncio" });
     }

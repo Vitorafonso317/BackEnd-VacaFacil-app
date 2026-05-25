@@ -45,7 +45,7 @@ const rules = {
     body("descricao").trim().notEmpty().withMessage("descricao é obrigatória")
       .isLength({ max: 500 }).withMessage("descricao deve ter no máximo 500 caracteres"),
     body("valor").isFloat({ min: 0.01 }).withMessage("valor deve ser positivo"),
-    body("data").isDate().withMessage("data inválida"),
+    body("data").isDate().withMessage("data inválida").bail().custom(notFuture),
   ],
   reproducao: [
     body("vaca_id").isInt({ min: 1 }).withMessage("vaca_id inválido"),

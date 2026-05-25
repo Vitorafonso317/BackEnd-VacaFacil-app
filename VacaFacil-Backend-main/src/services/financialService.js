@@ -29,7 +29,7 @@ async function update(id, tipo, data, userId) {
   const fields = [];
   const values = [];
 
-  if (descricao) { fields.push("descricao = ?"); values.push(descricao); }
+  if (descricao?.trim()) { fields.push("descricao = ?"); values.push(descricao.trim()); }
   if (valor !== undefined) { fields.push("valor = ?"); values.push(valor); }
   if (date) { fields.push("data = ?"); values.push(date); }
 
