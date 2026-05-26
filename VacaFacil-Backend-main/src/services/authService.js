@@ -14,9 +14,14 @@ function createTransporter() {
 }
 
 async function sendResetEmail(email, nome, code) {
+  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+    const err = new Error("Serviço de e-mail não configurado. Contate o suporte.");
+    err.status = 503;
+    throw err;
+  }
   const transporter = createTransporter();
   await transporter.sendMail({
-    from: `"VacaFácil" <${process.env.SMTP_FROM || process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM || `"VacaFácil" <${process.env.SMTP_USER}>`,
     to: email,
     subject: "Código para redefinir sua senha — VacaFácil",
     html: `
