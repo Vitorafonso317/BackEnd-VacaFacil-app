@@ -20,6 +20,26 @@ async function getOne(id, userId) {
 }
 
 async function create(data, userId) {
+  // Verifica limite do plano antes de inserir
+  const planRow = await db.get(
+    `SELECT p.limite_vacas
+     FROM users u
+     LEFT JOIN assinaturas a ON a.user_id = u.id AND a.status = 'ativo'
+     LEFT JOIN planos p ON p.id = a.plano_id
+     WHERE u.id = ?`,
+    [userId]
+  );
+  // Se não tem assinatura ativa ou está no plano Gratuito, aplica limite de 5
+  const limite = planRow?.limite_vacas ?? 5;
+  if (limite !== null) {
+    const countRow = await db.get("SELECT COUNT(*) as total FROM vacas WHERE user_id = ?", [userId]);
+    if (countRow.total >= limite) {
+      const err = new Error(`Limite de ${limite} vacas atingido no plano Gratuito. Faça upgrade para adicionar mais.`);
+      err.status = 403;
+      throw err;
+    }
+  }
+
   const { nome, raca, idade, peso, status_saude } = data;
   const result = await db.run(
     "INSERT INTO vacas (nome, raca, idade, peso, status_saude, user_id) VALUES (?, ?, ?, ?, ?, ?)",

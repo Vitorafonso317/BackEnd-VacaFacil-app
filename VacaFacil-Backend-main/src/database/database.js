@@ -158,10 +158,16 @@ class Database {
       "ALTER TABLE marketplace ADD COLUMN fotos TEXT",
       "ALTER TABLE marketplace ADD COLUMN latitude REAL",
       "ALTER TABLE marketplace ADD COLUMN longitude REAL",
+      "ALTER TABLE planos ADD COLUMN limite_vacas INTEGER", // NULL = ilimitado
     ];
     for (const sql of migrations) {
       try { await this.run(sql); } catch { /* coluna já existe */ }
     }
+
+    // Garante limite_vacas correto nos planos (idempotente)
+    await this.run("UPDATE planos SET limite_vacas = 5   WHERE id = 1 AND (limite_vacas IS NULL OR limite_vacas != 5)");
+    await this.run("UPDATE planos SET limite_vacas = NULL WHERE id = 2 AND limite_vacas IS NOT NULL");
+    await this.run("UPDATE planos SET limite_vacas = NULL WHERE id = 3 AND limite_vacas IS NOT NULL");
 
     // Indexes para queries frequentes por user_id / vaca_id
     const indexes = [
