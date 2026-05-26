@@ -1,29 +1,19 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const nodemailer = require("nodemailer");
+const { Resend } = require("resend");
 const db = require("../database/database");
 
-function createTransporter() {
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT) || 587,
-    secure: false,
-    family: 4, // força IPv4 — evita ENETUNREACH em servidores sem IPv6
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-    tls: { rejectUnauthorized: false },
-  });
-}
-
 async function sendResetEmail(email, nome, code) {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.RESEND_API_KEY) {
     const err = new Error("Serviço de e-mail não configurado. Contate o suporte.");
     err.status = 503;
     throw err;
   }
-  const transporter = createTransporter();
-  await transporter.sendMail({
-    from: process.env.SMTP_FROM || `"VacaFácil" <${process.env.SMTP_USER}>`,
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const from = process.env.RESEND_FROM || "VacaFácil <onboarding@resend.dev>";
+  const { error } = await resend.emails.send({
+    from,
     to: email,
     subject: "Código para redefinir sua senha — VacaFácil",
     html: `
@@ -39,6 +29,11 @@ async function sendResetEmail(email, nome, code) {
       </div>
     `,
   });
+  if (error) {
+    const err = new Error(error.message || "Falha ao enviar e-mail.");
+    err.status = 502;
+    throw err;
+  }
 }
 
 const REFRESH_EXPIRY_DAYS = 30;
