@@ -1,36 +1,47 @@
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
-const { Resend } = require("resend");
 const db = require("../database/database");
 
 async function sendResetEmail(email, nome, code) {
-  if (!process.env.RESEND_API_KEY) {
+  if (!process.env.BREVO_API_KEY) {
     const err = new Error("Serviço de e-mail não configurado. Contate o suporte.");
     err.status = 503;
     throw err;
   }
-  const resend = new Resend(process.env.RESEND_API_KEY);
-  const from = process.env.RESEND_FROM || "VacaFácil <onboarding@resend.dev>";
-  const { error } = await resend.emails.send({
-    from,
-    to: email,
-    subject: "Código para redefinir sua senha — VacaFácil",
-    html: `
-      <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#F9F7F0;border-radius:12px">
-        <h2 style="color:#4A7028;margin:0 0 8px">VacaFácil</h2>
-        <p style="color:#42473C;margin:0 0 24px">Olá, <strong>${nome}</strong>!</p>
-        <p style="color:#42473C;margin:0 0 16px">Recebemos uma solicitação para redefinir a senha da sua conta.</p>
-        <p style="color:#42473C;margin:0 0 8px">Use o código abaixo no app. Ele expira em <strong>15 minutos</strong>:</p>
-        <div style="background:#fff;border:2px solid #4A7028;border-radius:12px;padding:20px;text-align:center;margin:16px 0">
-          <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#4A7028">${code}</span>
+
+  const senderEmail = process.env.BREVO_SENDER_EMAIL || "noreply@vacafacil.app";
+  const senderName  = process.env.BREVO_SENDER_NAME  || "VacaFácil";
+
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": process.env.BREVO_API_KEY,
+      "content-type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      to: [{ email }],
+      subject: "Código para redefinir sua senha — VacaFácil",
+      htmlContent: `
+        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;background:#F9F7F0;border-radius:12px">
+          <h2 style="color:#4A7028;margin:0 0 8px">VacaFácil</h2>
+          <p style="color:#42473C;margin:0 0 24px">Olá, <strong>${nome}</strong>!</p>
+          <p style="color:#42473C;margin:0 0 16px">Recebemos uma solicitação para redefinir a senha da sua conta.</p>
+          <p style="color:#42473C;margin:0 0 8px">Use o código abaixo no app. Ele expira em <strong>15 minutos</strong>:</p>
+          <div style="background:#fff;border:2px solid #4A7028;border-radius:12px;padding:20px;text-align:center;margin:16px 0">
+            <span style="font-size:40px;font-weight:700;letter-spacing:12px;color:#4A7028">${code}</span>
+          </div>
+          <p style="color:#72786A;font-size:13px;margin:16px 0 0">Se não foi você, ignore este e-mail. Sua senha permanece a mesma.</p>
         </div>
-        <p style="color:#72786A;font-size:13px;margin:16px 0 0">Se não foi você, ignore este e-mail. Sua senha permanece a mesma.</p>
-      </div>
-    `,
+      `,
+    }),
   });
-  if (error) {
-    const err = new Error(error.message || "Falha ao enviar e-mail.");
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const err = new Error(body.message || "Falha ao enviar e-mail.");
     err.status = 502;
     throw err;
   }
